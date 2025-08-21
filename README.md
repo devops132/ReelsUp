@@ -1,4 +1,4 @@
-# VidMarket MVP (Full Stack, Docker)
+# ReelsUP MVP (Full Stack, Docker)
 
 Запуск полностью готового проекта (frontend + backend + PostgreSQL) одной командой.
 
