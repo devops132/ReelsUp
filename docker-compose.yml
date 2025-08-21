@@ -1,0 +1,75 @@
+# docker-compose.yml
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: videodb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    # опционально оставляем консоль MinIO наружу
+    # (сам S3 API 9000 не публикуем — к нему ходит backend и gateway внутри сети)
+    ports:
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  backend:
+    build: ./backend
+    environment:
+      - PORT=4000
+      - DATABASE_URL=postgresql://user:password@db:5432/videodb
+      - JWT_SECRET=supersecretkey
+      - UPLOAD_DIR=/tmp/uploads
+      - CORS_ORIGIN=http://localhost:3000
+      - S3_ENDPOINT=http://minio:9000
+      - S3_BUCKET=videomarket
+      - S3_ACCESS_KEY=minioadmin
+      - S3_SECRET_KEY=minioadmin
+    depends_on:
+      - db
+      - minio
+    # порт наружу больше не нужен — всё идёт через gateway
+    volumes:
+      - uploads:/tmp/uploads
+      - ./backend/sql:/app/sql
+
+  gateway:
+    build:
+      context: .
+      dockerfile: ./gateway/Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./gateway/.env
+    environment:
+      - BACKEND_TARGET=http://backend:4000
+      - MINIO_TARGET=http://minio:9000
+      - PUBLIC_BASE_PATH=
+      # Для дев-режима можно проксировать фронт-сервер:
+      # - FRONTEND_UPSTREAM=http://localhost:3001
+    depends_on:
+      - backend
+      - minio
+    # Если фронт собран статикой — смонтируйте её в /app/web
+    volumes:
+      - ./frontend/out:/app/web:ro       # Next.js export
+      # - ./frontend/dist:/app/web:ro    # Vite
+      # - ./frontend/build:/app/web:ro   # CRA
+
+volumes:
+  db_data:
+  uploads:
+  minio_data:
