@@ -65,43 +65,52 @@ function rewriteJsonBody(bodyStr) {
 }
 
 if (BACKEND_TARGET) {
-  app.use(`${PUBLIC_BASE_PATH}/api`, createProxyMiddleware({
-    target: BACKEND_TARGET,
-    changeOrigin: true,
-    selfHandleResponse: true,
-    onProxyReq: (proxyReq, req) => {
-      console.log(`[API PROXY] ${req.method} ${req.originalUrl} -> ${BACKEND_TARGET}${req.url}`);
-    },
-    onError: (err, req, res) => {
-      console.error('[API PROXY ERROR]', req.method, req.originalUrl, err.message);
-      res.status(502).end('Bad gateway');
-    },
-    onProxyRes: async (proxyRes, req, res) => {
-      const ct = proxyRes.headers['content-type'] || '';
-      const chunks = [];
-      proxyRes.on('data', c => chunks.push(c));
-      proxyRes.on('end', () => {
-        const buf = Buffer.concat(chunks);
-        let body = buf.toString('utf-8');
-        if (ct.includes('application/json')) {
-          body = rewriteJsonBody(body);
-          res.setHeader('content-type', 'application/json; charset=utf-8');
-        } else {
-          if (process.env.BACKEND_TARGET) body = body.split(BACKEND_TARGET).join('/api');
-          if (process.env.MINIO_TARGET) body = body.split(MINIO_TARGET).join('/proxy-file?u=' + encodeURIComponent(process.env.MINIO_TARGET));
-          if (ct) res.setHeader('content-type', ct);
+
+  app.use(
+    `${PUBLIC_BASE_PATH}/api`,
+    createProxyMiddleware({
+      target: BACKEND_TARGET, changeOrigin: true, selfHandleResponse: true,
+      onProxyReq: (proxyReq, req) => {
+        console.log(`[API PROXY] ${req.method} ${req.originalUrl} -> ${BACKEND_TARGET}${req.url}`);
+        if (req.body && Object.keys(req.body).length && req.headers['content-type']?.includes('application/json')) {
+          const bodyData = JSON.stringify(req.body);
+          proxyReq.setHeader('Content-Type', req.headers['content-type'] || 'application/json');
+          proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+          proxyReq.write(bodyData);
         }
-        for (const [k,v] of Object.entries(proxyRes.headers)) {
-          if (k.toLowerCase()==='content-length' || k.toLowerCase()==='content-type') continue;
-          res.setHeader(k, v);
-        }
-        res.statusCode = proxyRes.statusCode || 200;
-        res.end(body);
-        console.log(`[API PROXY RES] ${req.method} ${req.originalUrl} <- ${proxyRes.statusCode}`);
-      });
-    },
-    pathRewrite: pathStr => pathStr.replace(new RegExp(`^${PUBLIC_BASE_PATH}/api`), ''),
-  }));
+      },
+      onError: (err, req, res) => {
+        console.error('[API PROXY ERROR]', req.method, req.originalUrl, err.message);
+        res.status(502).end('Bad gateway');
+      },
+      onProxyRes: async (proxyRes, req, res) => {
+        const ct = proxyRes.headers['content-type'] || '';
+        const chunks = [];
+        proxyRes.on('data', c => chunks.push(c));
+        proxyRes.on('end', () => {
+          const buf = Buffer.concat(chunks);
+          let body = buf.toString('utf-8');
+          if (ct.includes('application/json')) {
+            body = rewriteJsonBody(body);
+            res.setHeader('content-type', 'application/json; charset=utf-8');
+          } else {
+            if (process.env.BACKEND_TARGET) body = body.split(BACKEND_TARGET).join('/api');
+            if (process.env.MINIO_TARGET) body = body.split(MINIO_TARGET).join('/proxy-file?u=' + encodeURIComponent(process.env.MINIO_TARGET));
+            if (ct) res.setHeader('content-type', ct);
+          }
+          for (const [k, v] of Object.entries(proxyRes.headers)) {
+            if (k.toLowerCase() === 'content-length' || k.toLowerCase() === 'content-type') continue;
+            res.setHeader(k, v);
+          }
+          res.statusCode = proxyRes.statusCode || 200;
+          res.end(body);
+          console.log(`[API PROXY RES] ${req.method} ${req.originalUrl} <- ${proxyRes.statusCode}`);
+        });
+      },
+      pathRewrite: pathStr => pathStr.replace(new RegExp(`^${PUBLIC_BASE_PATH}/api`), ''),
+    })
+  );
+
 }
 
 app.get(`${PUBLIC_BASE_PATH}/files/:bucket/*`, async (req, res) => {
