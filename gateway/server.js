@@ -97,6 +97,7 @@ if (BACKEND_TARGET) {
         }
         res.statusCode = proxyRes.statusCode || 200;
         res.end(body);
+        console.log(`[API PROXY RES] ${req.method} ${req.originalUrl} <- ${proxyRes.statusCode}`);
       });
     },
     pathRewrite: pathStr => pathStr.replace(new RegExp(`^${PUBLIC_BASE_PATH}/api`), ''),
