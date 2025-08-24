@@ -66,7 +66,16 @@ function rewriteJsonBody(bodyStr) {
 
 if (BACKEND_TARGET) {
   app.use(`${PUBLIC_BASE_PATH}/api`, createProxyMiddleware({
-    target: BACKEND_TARGET, changeOrigin: true, selfHandleResponse: true,
+    target: BACKEND_TARGET,
+    changeOrigin: true,
+    selfHandleResponse: true,
+    onProxyReq: (proxyReq, req) => {
+      console.log(`[API PROXY] ${req.method} ${req.originalUrl} -> ${BACKEND_TARGET}${req.url}`);
+    },
+    onError: (err, req, res) => {
+      console.error('[API PROXY ERROR]', req.method, req.originalUrl, err.message);
+      res.status(502).end('Bad gateway');
+    },
     onProxyRes: async (proxyRes, req, res) => {
       const ct = proxyRes.headers['content-type'] || '';
       const chunks = [];
@@ -88,6 +97,7 @@ if (BACKEND_TARGET) {
         }
         res.statusCode = proxyRes.statusCode || 200;
         res.end(body);
+        console.log(`[API PROXY RES] ${req.method} ${req.originalUrl} <- ${proxyRes.statusCode}`);
       });
     },
     pathRewrite: pathStr => pathStr.replace(new RegExp(`^${PUBLIC_BASE_PATH}/api`), ''),
