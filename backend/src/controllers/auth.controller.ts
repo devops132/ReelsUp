@@ -5,12 +5,15 @@ import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET || 'devsecret';
 
 export async function register(req: any, res: any) {
-  const { email, password, name, role } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+  const { email, password, name } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'email and password required' });
+  }
   const hashed = await bcrypt.hash(password, 10);
   try {
+    // Always create regular users through this endpoint to avoid privilege escalation
     const q = `INSERT INTO users(email, password, name, role) VALUES($1,$2,$3,$4) RETURNING id,email,name,role`;
-    const { rows } = await pool.query(q, [email, hashed, name || null, role || 'user']);
+    const { rows } = await pool.query(q, [email, hashed, name || null, 'user']);
     return res.status(201).json(rows[0]);
   } catch (e: any) {
     if (e.code === '23505') return res.status(409).json({ error: 'email already exists' });

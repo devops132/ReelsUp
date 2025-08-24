@@ -39,7 +39,7 @@ export async function uploadVideo(req: Request, res: Response) {
     await new Promise<void>((resolve, reject) => {
       ffmpeg(file.path)
         .on("end", () => resolve())
-        .on("error", (err) => reject(err))
+        .on("error", (err: Error) => reject(err))
         .screenshots({
           count: 1,
           folder: path.dirname(thumbPath),
@@ -84,7 +84,7 @@ export async function listVideos(req: Request, res: Response) {
     ).rows;
 
     // для каждого видео генерируем Signed URL
-    const withUrls = videos.map((v) => ({
+    const withUrls = videos.map((v: any) => ({
       ...v,
       video_url: s3.getSignedUrl("getObject", {
         Bucket: bucket,

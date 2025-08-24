@@ -23,7 +23,7 @@ export async function initDb() {
       WHERE table_schema='public'
       ORDER BY table_name;
     `);
-    console.log('📋 Tables in DB:', tables.rows.map(r => r.table_name).join(', '));
+    console.log('📋 Tables in DB:', tables.rows.map((r: { table_name: string }) => r.table_name).join(', '));
 
     // создаём админа после инициализации
     await ensureAdmin();
