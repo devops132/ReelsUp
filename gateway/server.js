@@ -71,7 +71,11 @@ if (BACKEND_TARGET) {
     selfHandleResponse: true,
     onProxyReq: (proxyReq, req) => {
       console.log(`[API PROXY] ${req.method} ${req.originalUrl} -> ${BACKEND_TARGET}${req.url}`);
-      if (req.body && Object.keys(req.body).length) {
+      if (
+        req.body &&
+        Object.keys(req.body).length &&
+        req.headers['content-type']?.includes('application/json')
+      ) {
         const bodyData = JSON.stringify(req.body);
         proxyReq.setHeader('Content-Type', req.headers['content-type'] || 'application/json');
         proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
