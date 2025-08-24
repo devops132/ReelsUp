@@ -2,5 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-body { background: #F9FAFB; color: #333; }
+body {
+  margin: 0;
+  background: #F9FAFB;
+  color: #333;
+}
 a { color: #3BB9A8; }
