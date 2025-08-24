@@ -1,1 +1,62 @@
-// Placeholder for frontend/src/components/VideoUploadForm.js
+
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
+export default function VideoUploadForm() {
+  const { user, token } = useAuth();
+  const nav = useNavigate();
+  const [categories, setCategories] = useState([]);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [tags, setTags] = useState('');
+  const [productLinks, setProductLinks] = useState('');
+  const [category, setCategory] = useState('');
+  const [file, setFile] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!user) { nav('/login'); return; }
+    fetch('/api/categories').then(r=>r.json()).then(setCategories).catch(()=>{});
+  }, [user, nav]);
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!file) { setError('Выберите файл видео'); return; }
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('title', title);
+    fd.append('description', description);
+    fd.append('tags', tags);
+    fd.append('productLinks', productLinks);
+    fd.append('category', category);
+    fetch('/api/videos', {
+      method: 'POST',
+      headers: { 'Authorization': token ? 'Bearer ' + token : '' },
+      body: fd
+    }).then(r => {
+      if (!r.ok) throw new Error();
+      return r.json();
+    }).then(() => { alert('Видео отправлено на модерацию'); nav('/profile'); })
+      .catch(()=> setError('Не удалось загрузить видео'));
+  };
+
+  if (!user) return null;
+
+  return (
+    <form onSubmit={submit} className="form">
+      <h2>Загрузка видео</h2>
+      {error && <p style={{color:'red'}}>{error}</p>}
+      <label>Видео файл<input type="file" accept="video/*" onChange={e=>setFile(e.target.files[0])} required /></label>
+      <label>Заголовок<input value={title} onChange={e=>setTitle(e.target.value)} required /></label>
+      <label>Описание<textarea value={description} onChange={e=>setDescription(e.target.value)} rows="3" /></label>
+      <label>Теги<input value={tags} onChange={e=>setTags(e.target.value)} placeholder="tag1, tag2" /></label>
+      {user.role === 'business' && <label>Ссылки на товар<input value={productLinks} onChange={e=>setProductLinks(e.target.value)} placeholder="https://..." /></label>}
+      <label>Категория<select value={category} onChange={e=>setCategory(e.target.value)}>
+        <option value="">-- Не выбрана --</option>
+        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+      </select></label>
+      <button type="submit">Загрузить</button>
+    </form>
+  );
+}

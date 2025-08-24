@@ -1,1 +1,22 @@
-// Placeholder for frontend/package.json
+
+{
+  "name": "videomarketplace",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-router-dom": "6.22.3",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --watchAll=false",
+    "eject": "react-scripts eject"
+  },
+  "devDependencies": {
+    "@testing-library/react": "14.0.0",
+    "@testing-library/jest-dom": "6.4.6"
+  }
+}

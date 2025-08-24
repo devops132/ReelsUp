@@ -1,1 +1,27 @@
-// Placeholder for frontend/src/api.js
+
+function authHeader() {
+  const token = localStorage.getItem('authToken');
+  return token ? { 'Authorization': 'Bearer ' + token } : {};
+}
+
+export async function apiGet(path) {
+  const res = await fetch(path, { headers: { ...authHeader() } });
+  if (!res.ok) throw new Error('GET ' + path + ' -> ' + res.status);
+  return res.json();
+}
+
+export async function apiPost(path, data) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('POST ' + path + ' -> ' + res.status);
+  return res.json();
+}
+
+export async function apiDelete(path) {
+  const res = await fetch(path, { method: 'DELETE', headers: { ...authHeader() } });
+  if (!res.ok) throw new Error('DELETE ' + path + ' -> ' + res.status);
+  return res.json();
+}
