@@ -8,6 +8,8 @@ import (
     "log"
     "net/http"
     "os"
+	"strings"
+	"time"
 
     "github.com/gorilla/mux"
     _ "github.com/lib/pq"
@@ -18,6 +20,125 @@ import (
 var db *sql.DB
 var minioClient *minio.Client
 var jwtSecret []byte
+
+
+// seedAdmin ensures there is an admin user. It can also reset the admin password if ADMIN_PASSWORD is provided.
+func seedAdmin() {
+    adminEmail := strings.ToLower(strings.TrimSpace(os.Getenv("ADMIN_EMAIL")))
+	adminPass := os.Getenv("ADMIN_PASSWORD")
+	if adminEmail == "" {
+		adminEmail = "admin@example.com"
+	}
+	adminEmail = strings.ToLower(strings.TrimSpace(adminEmail))
+	if adminPass == "" {
+		// If empty, do not overwrite existing password; only create if missing with default 'admin123'
+		adminPass = "admin123"
+	}
+    // Does user exist?
+    var id int
+    var role string
+    err := db.QueryRow("SELECT id, role FROM users WHERE LOWER(email)=LOWER($1)", adminEmail).Scan(&id, &role)
+    if err == sql.ErrNoRows {
+        // Create admin
+        hash, herr := HashPassword(adminPass)
+        if herr != nil {
+            log.Println("seedAdmin: hash error:", herr)
+            return
+        }
+        err = db.QueryRow("INSERT INTO users (email, password_hash, name, role) VALUES ($1,$2,$3,$4) RETURNING id",
+            adminEmail, hash, "Admin", "admin").Scan(&id)
+        if err != nil {
+            log.Println("seedAdmin: create admin error:", err)
+            return
+        }
+        log.Println("seedAdmin: admin user created:", adminEmail)
+        return
+    } else if err != nil {
+        log.Println("seedAdmin: select error:", err)
+        return
+    }
+    // Ensure role admin
+    if role != "admin" {
+        if _, uerr := db.Exec("UPDATE users SET role='admin' WHERE id=$1", id); uerr != nil {
+            log.Println("seedAdmin: update role error:", uerr)
+        } else {
+            log.Println("seedAdmin: elevated user to admin:", adminEmail)
+        }
+    }
+    // If ADMIN_PASSWORD provided via env, reset password hash
+    if os.Getenv("ADMIN_PASSWORD") != "" {
+        hash, herr := HashPassword(os.Getenv("ADMIN_PASSWORD"))
+        if herr != nil {
+            log.Println("seedAdmin: hash error:", herr)
+            return
+        }
+        if _, uerr := db.Exec("UPDATE users SET password_hash=$1 WHERE id=$2", hash, id); uerr != nil {
+            log.Println("seedAdmin: update password error:", uerr)
+        } else {
+            log.Println("seedAdmin: admin password updated from env for", adminEmail)
+        }
+    }
+}
+
+
+
+func waitForDB(connStr string, timeoutSec int) (*sql.DB, error) {
+    deadline := time.Now().Add(time.Duration(timeoutSec) * time.Second)
+    var lastErr error
+    for time.Now().Before(deadline) {
+        db, err := sql.Open("postgres", connStr)
+        if err == nil {
+            if pingErr := db.Ping(); pingErr == nil {
+                return db, nil
+            } else {
+                lastErr = pingErr
+                db.Close()
+            }
+        } else {
+            lastErr = err
+        }
+        log.Println("Жду PostgreSQL...", lastErr)
+        time.Sleep(2 * time.Second)
+    }
+    return nil, fmt.Errorf("DB ping timeout: %w", lastErr)
+}
+
+func waitForMinIO(endpoint, access, secret, bucket string, timeoutSec int) (*minio.Client, error) {
+    deadline := time.Now().Add(time.Duration(timeoutSec) * time.Second)
+    var cli *minio.Client
+    var lastErr error
+    for time.Now().Before(deadline) {
+        c, err := minio.New(endpoint, &minio.Options{
+            Creds:  credentials.NewStaticV4(access, secret, ""),
+            Secure: false,
+        })
+        if err == nil {
+            ctx := context.Background()
+            exists, e2 := c.BucketExists(ctx, bucket)
+            if e2 == nil {
+                if !exists {
+                    if mkErr := c.MakeBucket(ctx, bucket, minio.MakeBucketOptions{Region: "us-east-1"}); mkErr != nil {
+                        lastErr = mkErr
+                    } else {
+                        cli = c
+                        return cli, nil
+                    }
+                } else {
+                    cli = c
+                    return cli, nil
+                }
+            } else {
+                lastErr = e2
+            }
+        } else {
+            lastErr = err
+        }
+        log.Println("Жду MinIO...", lastErr)
+        time.Sleep(2 * time.Second)
+    }
+    return nil, fmt.Errorf("MinIO timeout: %w", lastErr)
+}
+
 
 func main() {
     dbUser := os.Getenv("POSTGRES_USER")
@@ -38,7 +159,12 @@ func main() {
     if err = db.Ping(); err != nil { log.Fatalf("DB ping error: %v", err) }
     log.Println("Connected to PostgreSQL")
 
-    // MinIO
+    adminEmailLog := strings.ToLower(strings.TrimSpace(os.Getenv("ADMIN_EMAIL")))
+if adminEmailLog == "" { adminEmailLog = "admin@example.com" }
+adminPwdSet := ""
+if os.Getenv("ADMIN_PASSWORD") != "" { adminPwdSet = "yes" } else { adminPwdSet = "no" }
+log.Println("seedAdmin: env check -> ADMIN_EMAIL=", adminEmailLog, " ADMIN_PASSWORD set? ", adminPwdSet)
+// MinIO
     minioEndpoint := os.Getenv("MINIO_ENDPOINT")
     if minioEndpoint == "" { minioEndpoint = "localhost:9000" }
     minioAccess := os.Getenv("MINIO_ACCESS_KEY")

@@ -107,7 +107,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Некорректные данные", http.StatusBadRequest); return
     }
     var id int; var hash, name, role string
-    err := db.QueryRow("SELECT id, password_hash, name, role FROM users WHERE email=$1", strings.ToLower(req.Email)).Scan(&id, &hash, &name, &role)
+    err := db.QueryRow("SELECT id, password_hash, name, role FROM users WHERE LOWER(email)=LOWER($1)", strings.ToLower(req.Email)).Scan(&id, &hash, &name, &role)
     if err != nil || !CheckPassword(hash, req.Password) {
         http.Error(w, "Неверный email или пароль", http.StatusUnauthorized); return
     }
