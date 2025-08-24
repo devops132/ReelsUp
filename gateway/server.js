@@ -65,6 +65,7 @@ function rewriteJsonBody(bodyStr) {
 }
 
 if (BACKEND_TARGET) {
+
   app.use(
     `${PUBLIC_BASE_PATH}/api`,
     createProxyMiddleware({
@@ -109,6 +110,7 @@ if (BACKEND_TARGET) {
       pathRewrite: pathStr => pathStr.replace(new RegExp(`^${PUBLIC_BASE_PATH}/api`), ''),
     })
   );
+
 }
 
 app.get(`${PUBLIC_BASE_PATH}/files/:bucket/*`, async (req, res) => {
