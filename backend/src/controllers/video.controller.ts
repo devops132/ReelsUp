@@ -78,6 +78,7 @@ export async function uploadVideo(req: Request, res: Response) {
 // список видео
 export async function listVideos(req: Request, res: Response) {
   try {
+    console.log("[%s] GET /videos", new Date().toISOString());
     const bucket = process.env.S3_BUCKET!;
     const videos = (
       await pool.query("SELECT * FROM videos WHERE status='approved' ORDER BY created_at DESC")
@@ -115,6 +116,7 @@ export async function getVideo(req: Request, res: Response) {
 
     const result = await pool.query("SELECT * FROM videos WHERE id=$1", [id]);
     if (result.rows.length === 0) {
+      console.warn("[%s] Missing video id=%s", new Date().toISOString(), id);
       return res.status(404).json({ error: "Video not found" });
     }
 
