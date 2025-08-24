@@ -2,7 +2,9 @@ import axios from 'axios';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-const API = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000';
+// По умолчанию обращаемся к проксированному API
+// на том же домене (gateway -> /api).
+const API = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
 export default function Home() {
   const [videos, setVideos] = useState<any[]>([]);
@@ -30,7 +32,7 @@ export default function Home() {
           <div key={v.id} className="bg-white rounded-xl p-3 shadow">
             <Link href={`/video/${v.id}`}>
               <a>
-                <img src={v.thumbnail || '/placeholder.png'} className="w-full rounded-lg object-cover h-48" />
+                <img src={v.thumbnail_url || '/placeholder.png'} className="w-full rounded-lg object-cover h-48" />
                 <div className="mt-2">
                   <div className="font-semibold">{v.title}</div>
                   <div className="text-sm text-gray-500">{v.author_name}</div>

@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { useState } from 'react';
 
-const API = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000';
+// Используем /api по умолчанию, чтобы фронтенд работал через gateway
+const API = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');

@@ -2,7 +2,8 @@ import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 
-const API = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000';
+// Используем относительный путь к API (gateway проксирует /api)
+const API = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
 export default function VideoPage() {
   const router = useRouter();
@@ -40,7 +41,7 @@ export default function VideoPage() {
     <main className='max-w-3xl mx-auto p-6'>
       <h1 className='text-2xl font-bold mb-4'>{video.title}</h1>
       <div className='mb-4'>
-        <video src={video.video_url} controls className='w-full rounded-lg' poster={video.thumbnail || undefined} />
+        <video src={video.video_url} controls className='w-full rounded-lg' poster={video.thumbnail_url || undefined} />
       </div>
       <p className='text-gray-700 mb-2'>{video.description}</p>
       <div className='mb-4'>

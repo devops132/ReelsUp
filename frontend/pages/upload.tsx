@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { useState } from 'react';
 
-const API = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000';
+// API по умолчанию – относительный путь, чтобы работать за gateway
+const API = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
 export default function Upload() {
   const [title, setTitle] = useState('');
