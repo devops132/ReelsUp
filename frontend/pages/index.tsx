@@ -20,6 +20,7 @@ export default function Home() {
           <a className="bg-primary text-white px-4 py-2 rounded-lg" href="/register">Регистрация</a>
           <a className="bg-accent text-white px-4 py-2 rounded-lg" href="/upload">Загрузить</a>
           <a className="bg-gray-200 text-black px-4 py-2 rounded-lg" href="/admin">Admin</a>
+          <a className="bg-secondary text-white px-4 py-2 rounded-lg" href="/reels">Reels</a>
         </nav>
       </header>
 
