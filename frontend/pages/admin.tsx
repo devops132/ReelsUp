@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 
-const API = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000';
+// По умолчанию используем относительное API через gateway
+const API = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
 export default function Admin() {
   const [videos, setVideos] = useState<any[]>([]);
