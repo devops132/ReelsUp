@@ -5,7 +5,9 @@ import { Link } from 'react-router-dom';
 export default function VideoCard({ video }) {
   return (
     <div className="video-card">
-      <video src={`/api/videos/${video.id}/content`} controls preload="metadata" />
+      <Link to={`/video/${video.id}`} className="thumb-wrap">
+        <img src={`/api/videos/${video.id}/thumbnail`} alt={video.title} />
+      </Link>
       <div className="content">
         <h3><Link to={`/video/${video.id}`}>{video.title}</Link></h3>
         <small>Автор: {video.user_name} {video.category_name && (` | Категория: ${video.category_name}`)}</small><br/>

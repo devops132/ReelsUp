@@ -29,7 +29,7 @@ a:hover { text-decoration: underline; }
 }
 .brand { font-weight: 800; letter-spacing: .4px; }
 .feed {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 16px;
   padding: 16px; max-width: 1100px; margin: 0 auto;
 }
 .video-card {
@@ -42,7 +42,7 @@ a:hover { text-decoration: underline; }
 .video-card .content { padding: 10px 12px; }
 .video-card h3 { margin: 6px 0; font-size: 1.05rem; }
 .video-card small { color: #718096; }
-.video-card video { width: 100%; height: auto; display: block; background: #000; }
+/* thumbnail handled via .thumb-wrap */
 input, select, textarea, button {
   background: var(--bg-color); color: var(--text-color);
   border: 1px solid var(--border-color); border-radius: 10px;
