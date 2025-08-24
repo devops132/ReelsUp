@@ -24,21 +24,25 @@ export async function register(req: any, res: any) {
 export async function login(req: any, res: any) {
   const { email, password } = req.body;
   console.log("[%s] POST /auth/login %s", new Date().toISOString(), email);
-
-  const { rows } = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
-  const user = rows[0];
-  if (!user) {
-    console.warn("[%s] Login failed for %s: user not found", new Date().toISOString(), email);
-    return res.status(401).json({ error: 'invalid credentials' });
+  try {
+    const { rows } = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
+    const user = rows[0];
+    if (!user) {
+      console.warn("[%s] Login failed for %s: user not found", new Date().toISOString(), email);
+      return res.status(401).json({ error: 'invalid credentials' });
+    }
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) {
+      console.warn("[%s] Login failed for %s: bad password", new Date().toISOString(), email);
+      return res.status(401).json({ error: 'invalid credentials' });
+    }
+    const token = jwt.sign({ sub: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    console.log("[%s] Login success for %s", new Date().toISOString(), email);
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  } catch (e: any) {
+    console.error("[%s] Login error for %s: %s", new Date().toISOString(), email, e.message);
+    res.status(500).json({ error: 'internal error' });
   }
-  const ok = await bcrypt.compare(password, user.password);
-  if (!ok) {
-    console.warn("[%s] Login failed for %s: bad password", new Date().toISOString(), email);
-    return res.status(401).json({ error: 'invalid credentials' });
-  }
-  const token = jwt.sign({ sub: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-  console.log("[%s] Login success for %s", new Date().toISOString(), email);
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
 }
 
 export async function me(req: any, res: any) {
