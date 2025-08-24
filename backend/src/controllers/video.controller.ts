@@ -8,6 +8,7 @@ import { pool } from "../config/db.js";
 // загрузка видео
 export async function uploadVideo(req: Request, res: Response) {
   try {
+    console.log("[%s] POST /videos", new Date().toISOString());
     if (!req.file) {
       res.status(400).json({ error: "No video file uploaded" });
       return; // 👈 добавлено для TS
@@ -68,6 +69,7 @@ export async function uploadVideo(req: Request, res: Response) {
       [userId, title, description, key, thumbKey, "pending"]
     );
 
+    console.log("[%s] Uploaded video id=%s", new Date().toISOString(), result.rows[0].id);
     res.json(result.rows[0]);
   } catch (e) {
     console.error("Upload error:", e);
@@ -78,10 +80,19 @@ export async function uploadVideo(req: Request, res: Response) {
 // список видео
 export async function listVideos(req: Request, res: Response) {
   try {
+    console.log("[%s] GET /videos", new Date().toISOString());
     const bucket = process.env.S3_BUCKET!;
+    console.log("Fetching approved videos from DB");
     const videos = (
       await pool.query("SELECT * FROM videos WHERE status='approved' ORDER BY created_at DESC")
     ).rows;
+    console.log("DB returned %d approved videos", videos.length);
+    try {
+      const pending = await pool.query("SELECT COUNT(*) FROM videos WHERE status!='approved'");
+      console.log("%s pending videos awaiting approval", pending.rows[0].count);
+    } catch (e: any) {
+      console.warn("Failed counting pending videos: %s", e.message);
+    }
 
     // для каждого видео генерируем Signed URL
     const withUrls = videos.map((v: any) => ({
@@ -100,6 +111,7 @@ export async function listVideos(req: Request, res: Response) {
         : null,
     }));
 
+    console.log("Responding with %d videos", withUrls.length);
     res.json(withUrls);
   } catch (e) {
     console.error("List error:", e);
@@ -111,10 +123,12 @@ export async function listVideos(req: Request, res: Response) {
 export async function getVideo(req: Request, res: Response) {
   try {
     const { id } = req.params;
+    console.log("[%s] GET /videos/%s", new Date().toISOString(), id);
     const bucket = process.env.S3_BUCKET!;
 
     const result = await pool.query("SELECT * FROM videos WHERE id=$1", [id]);
     if (result.rows.length === 0) {
+      console.warn("[%s] Missing video id=%s", new Date().toISOString(), id);
       return res.status(404).json({ error: "Video not found" });
     }
 
