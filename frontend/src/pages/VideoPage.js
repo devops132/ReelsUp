@@ -11,12 +11,22 @@ export default function VideoPage() {
   const [video, setVideo] = useState(null);
   const [comments, setComments] = useState([]);
   const [text, setText] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState('');
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    apiGet('/api/videos/' + id).then(setVideo).catch(()=> setErr('Видео не найдено или недоступно'));
-    apiGet('/api/videos/' + id + '/comments').then(setComments).catch(()=>{});
-  }, [id]);
+  const load = async () => {
+    try {
+      const v = await apiGet('/api/videos/' + id);
+      setVideo(v);
+      const c = await apiGet('/api/videos/' + id + '/comments');
+      setComments(c);
+    } catch {
+      setErr('Видео не найдено или недоступно');
+    }
+  };
+
+  useEffect(() => { load(); }, [id]);
 
   const addComment = async (e) => {
     e.preventDefault();
@@ -28,45 +38,81 @@ export default function VideoPage() {
     } catch {}
   };
 
-  const toggleLike = async () => {
-    if (!user) { alert('Войдите'); return; }
+  const delComment = async (cid) => {
+    if (!user) return;
+    if (!window.confirm('Удалить комментарий?')) return;
     try {
-      if (!video.liked_by_user) {
-        const res = await apiPost('/api/videos/' + id + '/like', {});
-        setVideo({ ...video, likes_count: res.likes_count, liked_by_user: true });
-      } else {
-        const res = await apiDelete('/api/videos/' + id + '/like');
-        setVideo({ ...video, likes_count: res.likes_count, liked_by_user: false });
+      await apiDelete('/api/videos/' + id + '/comments/' + cid);
+      setComments(comments.filter(c => c.id !== cid));
+    } catch {}
+  };
+
+  const startEdit = (c) => {
+    setEditingId(c.id); setEditText(c.text);
+  };
+  const saveEdit = async () => {
+    if (!editingId || !editText.trim()) { setEditingId(null); return; }
+    try {
+      const res = await fetch(`/api/videos/${id}/comments/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(user ? {'Authorization':'Bearer '+localStorage.getItem('authToken')} : {}) },
+        body: JSON.stringify({ text: editText })
+      });
+      if (res.ok) {
+        setComments(comments.map(c => c.id === editingId ? { ...c, text: editText } : c));
+        setEditingId(null); setEditText('');
       }
     } catch {}
   };
 
-  if (err) return <p style={{color:'red', textAlign:'center'}}>{err}</p>;
-  if (!video) return <p style={{textAlign:'center'}}>Загрузка...</p>;
+  const onLikeToggle = (res) => {
+    setVideo({ ...video, likes_count: res.likes_count, liked_by_user: res.liked });
+  };
+  const onRated = (res) => {
+    setVideo({ ...video, my_rating: res.my_rating, avg_rating: res.avg_rating });
+  };
 
-  const links = video.product_links ? video.product_links.split(/[,\s]+/).filter(x => x.startsWith('http')) : [];
+  if (err) return <p style={{ color:'red', textAlign:'center' }}>{err}</p>;
+  if (!video) return <p style={{ textAlign:'center' }}>Загрузка...</p>;
+
+  const commentsUI = (
+    <div style={{ background:'rgba(0,0,0,.35)', borderRadius:12, padding:8 }}>
+      <button title="Комментарии">{`💬 ${comments.length}`}</button>
+    </div>
+  );
 
   return (
-    <div style={{ maxWidth: 900, margin: '20px auto' }}>
+    <div style={{ maxWidth: 1000, margin: '20px auto' }}>
       <h2>{video.title}</h2>
-      <VideoPlayer src={`/api/videos/${video.id}/content`} />
+      <VideoPlayer video={video} onLikeToggle={onLikeToggle} onRated={onRated} commentsUI={commentsUI} />
       <p>{video.description}</p>
       {video.tags && <p><strong>Теги:</strong> {video.tags}</p>}
-      {links.length > 0 && <p><strong>Ссылки на товар:</strong> {links.map((l,i)=>(<span key={i}><a href={l} target="_blank" rel="noreferrer">{l}</a>{i<links.length-1?', ':''}</span>))}</p>}
-      <p><strong>Автор:</strong> {video.user_name} {video.category_name && <>| <strong>Категория:</strong> {video.category_name}</>}</p>
-      <p><strong>Лайки:</strong> {video.likes_count} {user && <button onClick={toggleLike}>{video.liked_by_user ? 'Убрать лайк' : 'Лайк'}</button>}</p>
-
       <h3>Комментарии ({comments.length})</h3>
       <div>
         {comments.map(c => (
           <div key={c.id} className="comment">
-            <span className="comment-author">{c.user.name}</span>: <span>{c.text}</span>
+            <div><span className="comment-author">{c.user.name}</span>: <span>{c.text}</span></div>
             <div style={{ fontSize: '.8em', color: '#8899aa' }}>{new Date(c.created_at).toLocaleString()}</div>
+            {user && (user.id === c.user.id || user.role === 'admin') && (
+              <div style={{ marginTop: 4 }}>
+                {editingId === c.id ? (
+                  <>
+                    <input value={editText} onChange={e=>setEditText(e.target.value)} style={{ width:'70%' }} />
+                    <button onClick={saveEdit} style={{ marginLeft: 6 }}>Сохранить</button>
+                    <button onClick={()=>{setEditingId(null); setEditText('');}} style={{ marginLeft: 6 }}>Отмена</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={()=>startEdit(c)}>Редактировать</button>
+                    <button onClick={()=>delComment(c.id)} style={{ marginLeft: 6, background:'#e88' }}>Удалить</button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         ))}
         {comments.length === 0 && <p>Комментариев пока нет.</p>}
       </div>
-
       {user ? (
         <form onSubmit={addComment} style={{ marginTop: 10 }}>
           <input value={text} onChange={e=>setText(e.target.value)} placeholder="Ваш комментарий..." style={{ width: '80%' }} />

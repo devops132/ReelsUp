@@ -1,18 +1,26 @@
+# --------- BUILD ---------
 FROM golang:1.21 AS builder
 WORKDIR /app
+
+# deps cache
 COPY go.mod ./
 RUN go mod download
+
+# source + tidy
 COPY . .
 RUN go mod tidy && go mod download
+
+# static build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app .
 
-# --- RUNTIME ---
-FROM debian:bookworm-slim
-# Чтобы TLS-сертификаты были в системе (на случай HTTPS)
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# --------- RUNTIME ---------
+FROM alpine:3.20
 
-# Создаем непривилегированного пользователя (uid 65532 = как в distroless)
-RUN useradd -m -u 65532 appuser
+# ffmpeg (+ ffprobe) и сертификаты
+RUN apk add --no-cache ffmpeg ca-certificates tzdata
+
+# непривилегированный пользователь
+RUN adduser -D -u 65532 appuser
 
 WORKDIR /app
 COPY --from=builder /app/app ./app

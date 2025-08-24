@@ -194,6 +194,8 @@ log.Println("seedAdmin: env check -> ADMIN_EMAIL=", adminEmailLog, " ADMIN_PASSW
     api.HandleFunc("/videos", ListVideosHandler).Methods("GET")
     api.HandleFunc("/videos/{id:[0-9]+}", GetVideoHandler).Methods("GET")
     api.HandleFunc("/videos/{id:[0-9]+}/content", VideoContentHandler).Methods("GET")
+	api.HandleFunc("/videos/{id:[0-9]+}/thumbnail", VideoThumbnailStaticHandler).Methods("GET")
+	api.HandleFunc("/videos/{id:[0-9]+}/thumbnail/animated", VideoThumbnailAnimatedHandler).Methods("GET")
     api.HandleFunc("/videos/{id:[0-9]+}/comments", ListCommentsHandler).Methods("GET")
     api.HandleFunc("/categories", CategoriesHandler).Methods("GET")
 
@@ -203,6 +205,9 @@ log.Println("seedAdmin: env check -> ADMIN_EMAIL=", adminEmailLog, " ADMIN_PASSW
     authR.HandleFunc("/videos/{id:[0-9]+}", DeleteVideoHandler).Methods("DELETE")
     authR.HandleFunc("/videos/{id:[0-9]+}/comments", CreateCommentHandler).Methods("POST")
     authR.HandleFunc("/videos/{id:[0-9]+}/comments/{commentId:[0-9]+}", DeleteCommentHandler).Methods("DELETE")
+	authR.HandleFunc("/videos/{id:[0-9]+}/comments/{commentId:[0-9]+}", UpdateCommentHandler).Methods("PUT")
+	authR.HandleFunc("/videos/{id:[0-9]+}/rating", RateVideoHandler).Methods("POST")
+	authR.HandleFunc("/videos/{id:[0-9]+}/rating", UnrateVideoHandler).Methods("DELETE")
     authR.HandleFunc("/videos/{id:[0-9]+}/like", LikeVideoHandler).Methods("POST")
     authR.HandleFunc("/videos/{id:[0-9]+}/like", UnlikeVideoHandler).Methods("DELETE")
     authR.HandleFunc("/user/videos", ListMyVideosHandler).Methods("GET")

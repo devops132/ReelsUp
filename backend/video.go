@@ -2,12 +2,15 @@
 package main
 
 import (
+	"context"
     "database/sql"
     "encoding/json"
     "fmt"
+	"os/exec"
     "io"
     "net/http"
     "os"
+	"path/filepath"
     "strconv"
     "strings"
     "time"
@@ -15,6 +18,7 @@ import (
     "github.com/gorilla/mux"
     minio "github.com/minio/minio-go/v7"
 )
+
 
 type Video struct {
     ID            int       `json:"id"`
@@ -33,6 +37,10 @@ type Video struct {
     CommentsCount int       `json:"comments_count"`
     IsApproved    bool      `json:"is_approved"`
     LikedByUser   bool      `json:"liked_by_user"`
+    Has720        bool      `json:"has_720"`
+    Has480        bool      `json:"has_480"`
+    AvgRating     float64   `json:"avg_rating"`
+    MyRating      int       `json:"my_rating"`
 }
 
 func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,10 +51,10 @@ func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
                      v.category_id, COALESCE(c.name,''),
                      (SELECT COUNT(*) FROM likes l WHERE l.video_id=v.id) as likes,
                      (SELECT COUNT(*) FROM comments m WHERE m.video_id=v.id) as comments,
-                     v.is_approved
+                     v.is_approved, (v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') as has_720, (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') as has_480, (v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') as has_720, (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') as has_480
               FROM videos v JOIN users u ON u.id=v.user_id
               LEFT JOIN categories c ON c.id=v.category_id
-              WHERE v.is_approved=TRUE`
+              WHERE v.is_approved, (v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') as has_720, (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') as has_480=TRUE`
     params := []any{}
     if q != "" {
         like := "%" + q + "%"
@@ -72,7 +80,7 @@ func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
         var v Video
         var catID sql.NullInt32
         if err := rows.Scan(&v.ID,&v.Title,&v.Description,&v.Tags,&v.ProductLinks,&v.Thumbnail,&v.VideoPath,
-            &v.CreatedAt,&v.UserID,&v.UserName,&catID,&v.CategoryName,&v.LikesCount,&v.CommentsCount,&v.IsApproved); err != nil {
+            &v.CreatedAt,&v.UserID,&v.UserName,&catID,&v.CategoryName,&v.LikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480); err != nil {
             http.Error(w,"Ошибка данных",http.StatusInternalServerError); return
         }
         if catID.Valid { v.CategoryID = int(catID.Int32) }
@@ -91,11 +99,11 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request) {
                 v.category_id, COALESCE(c.name,''),
                 (SELECT COUNT(*) FROM likes l WHERE l.video_id=v.id) as likes,
                 (SELECT COUNT(*) FROM comments m WHERE m.video_id=v.id) as comments,
-                v.is_approved
+                v.is_approved, (v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') as has_720, (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') as has_480
          FROM videos v JOIN users u ON u.id=v.user_id
          LEFT JOIN categories c ON c.id=v.category_id
          WHERE v.id=$1`, id).Scan(&v.ID,&v.Title,&v.Description,&v.Tags,&v.ProductLinks,&v.Thumbnail,&v.VideoPath,
-            &v.CreatedAt,&v.UserID,&v.UserName,&catID,&v.CategoryName,&v.LikesCount,&v.CommentsCount,&v.IsApproved)
+            &v.CreatedAt,&v.UserID,&v.UserName,&catID,&v.CategoryName,&v.LikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480)
     if err != nil { http.Error(w, "Видео не найдено", http.StatusNotFound); return }
     if catID.Valid { v.CategoryID = int(catID.Int32) }
     if !v.IsApproved {
@@ -227,7 +235,7 @@ func ListMyVideosHandler(w http.ResponseWriter, r *http.Request) {
                 v.category_id, COALESCE(c.name,''),
                 (SELECT COUNT(*) FROM likes l WHERE l.video_id=v.id) as likes,
                 (SELECT COUNT(*) FROM comments m WHERE m.video_id=v.id) as comments,
-                v.is_approved
+                v.is_approved, (v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') as has_720, (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') as has_480
          FROM videos v JOIN users u ON u.id=v.user_id
          LEFT JOIN categories c ON c.id=v.category_id
          WHERE v.user_id=$1 ORDER BY v.created_at DESC`, uid)
@@ -237,7 +245,7 @@ func ListMyVideosHandler(w http.ResponseWriter, r *http.Request) {
     for rows.Next() {
         var v Video; var catID sql.NullInt32
         if err := rows.Scan(&v.ID,&v.Title,&v.Description,&v.Tags,&v.ProductLinks,&v.Thumbnail,&v.VideoPath,
-            &v.CreatedAt,&v.UserID,&v.UserName,&catID,&v.CategoryName,&v.LikesCount,&v.CommentsCount,&v.IsApproved); err != nil {
+            &v.CreatedAt,&v.UserID,&v.UserName,&catID,&v.CategoryName,&v.LikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480); err != nil {
             http.Error(w,"Ошибка данных",http.StatusInternalServerError); return
         }
         if catID.Valid { v.CategoryID = int(catID.Int32) }
@@ -245,4 +253,265 @@ func ListMyVideosHandler(w http.ResponseWriter, r *http.Request) {
     }
     w.Header().Set("Content-Type","application/json")
     json.NewEncoder(w).Encode(out)
+}
+
+// generatePreviewGIF creates an animated GIF preview from ~6 evenly-spaced frames of the video.
+// It downloads the object to a temp file, extracts frames using ffmpeg, builds a GIF, and uploads it back to MinIO.
+
+func generatePreviewGIF(ctx context.Context, bucket, objectKey string) (string, error) {
+    dir, err := os.MkdirTemp("", "thumbgen")
+    if err != nil { return "", err }
+    defer os.RemoveAll(dir)
+
+    inPath := filepath.Join(dir, "in.mp4")
+    obj, err := minioClient.GetObject(ctx, bucket, objectKey, minio.GetObjectOptions{})
+    if err != nil { return "", err }
+    defer obj.Close()
+    out, err := os.Create(inPath); if err != nil { return "", err }
+    if _, err := io.Copy(out, obj); err != nil { out.Close(); return "", err }
+    out.Close()
+
+    // Duration & timestamps
+    dur, err := probeDuration(inPath)
+    if err != nil || dur <= 0 { dur = 12.0 } // fallback
+    perc := []float64{0.10, 0.25, 0.40, 0.55, 0.70, 0.85}
+    times := []float64{}
+    for _, p := range perc {
+        t := p * dur
+        if t < 0 { t = 0 }
+        times = append(times, t)
+    }
+
+    // Extract 6 frames with crop->scale to 480x270
+    jpgs := []string{}
+    for i, t := range times {
+        jpg := filepath.Join(dir, fmt.Sprintf("thumb%02d.jpg", i))
+        cmd := exec.Command("ffmpeg", "-y", "-loglevel", "error",
+            "-ss", fmt.Sprintf("%.3f", t), "-i", inPath, "-vframes", "1",
+            "-vf", "crop='min(in_w,in_h*16/9)':'min(in_h,in_w*9/16)',scale=480:270:flags=lanczos",
+            jpg)
+        if err := cmd.Run(); err != nil {
+            return "", fmt.Errorf("ffmpeg extract frame %.3f failed: %w", t, err)
+        }
+        jpgs = append(jpgs, jpg)
+    }
+
+    // Build GIF ~2 fps with palette
+    gifPath := filepath.Join(dir, "preview.gif")
+    cmdGif := exec.Command("ffmpeg", "-y", "-loglevel", "error",
+        "-framerate", "2", "-i", filepath.Join(dir, "thumb%02d.jpg"),
+        "-vf", "split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=new=1",
+        "-loop", "0", gifPath)
+    if err := cmdGif.Run(); err != nil {
+        return "", fmt.Errorf("ffmpeg gif build failed: %w", err)
+    }
+
+    // Upload GIF
+    thumbKey := objectKey + ".gif"
+    f, err := os.Open(gifPath); if err != nil { return "", err }
+    defer f.Close()
+    st, _ := f.Stat()
+    _, err = minioClient.PutObject(ctx, bucket, thumbKey, f, st.Size(), minio.PutObjectOptions{ContentType: "image/gif"})
+    if err != nil { return "", err }
+
+    // Upload static JPG (first frame)
+    staticJPG := filepath.Join(dir, "thumb00.jpg")
+    if _, err := os.Stat(staticJPG); err == nil {
+        jf, _ := os.Open(staticJPG)
+        if jf != nil {
+            defer jf.Close()
+            jst, _ := jf.Stat()
+            _, _ = minioClient.PutObject(ctx, bucket, thumbKey+".jpg", jf, jst.Size(), minio.PutObjectOptions{
+                ContentType: "image/jpeg",
+            })
+        }
+    }
+    return thumbKey, nil
+}
+
+// VideoThumbnailHandler serves the animated GIF preview from MinIO
+func VideoThumbnailHandler(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    idStr := vars["id"]
+    id, err := strconv.Atoi(idStr)
+    if err != nil {
+        http.Error(w, "Некорректный ID", http.StatusBadRequest); return
+    }
+    var key string
+    err = db.QueryRow("SELECT thumbnail_path FROM videos WHERE id=$1", id).Scan(&key)
+    if err != nil || key == "" {
+        http.Error(w, "Превью не найдено", http.StatusNotFound); return
+    }
+    bucketName := os.Getenv("MINIO_BUCKET"); if bucketName == "" { bucketName = "videos" }
+    obj, err := minioClient.GetObject(r.Context(), bucketName, key, minio.GetObjectOptions{})
+    if err != nil { http.Error(w, "Ошибка доступа к превью", http.StatusInternalServerError); return }
+    defer obj.Close()
+    w.Header().Set("Content-Type", "image/gif")
+    if _, err := io.Copy(w, obj); err != nil { fmt.Println("send thumb err:", err) }
+}
+
+// VideoThumbnailStaticHandler serves static JPG preview (first frame); falls back to GIF if JPG not found
+func VideoThumbnailStaticHandler(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    idStr := vars["id"]
+    id, err := strconv.Atoi(idStr)
+    if err != nil { http.Error(w, "Некорректный ID", http.StatusBadRequest); return }
+    var key string
+    if err := db.QueryRow("SELECT thumbnail_path FROM videos WHERE id=$1", id).Scan(&key); err != nil || key == "" {
+        http.Error(w, "Превью не найдено", http.StatusNotFound); return
+    }
+    bucket := os.Getenv("MINIO_BUCKET"); if bucket == "" { bucket = "videos" }
+    // Try JPG first
+    jpgKey := key + ".jpg"
+    obj, err := minioClient.GetObject(r.Context(), bucket, jpgKey, minio.GetObjectOptions{})
+    if err == nil {
+        defer obj.Close()
+        w.Header().Set("Content-Type", "image/jpeg")
+        if _, err := io.Copy(w, obj); err == nil { return }
+    }
+    // Fallback to GIF
+    obj2, err2 := minioClient.GetObject(r.Context(), bucket, key, minio.GetObjectOptions{})
+    if err2 != nil { http.Error(w, "Ошибка доступа к превью", http.StatusInternalServerError); return }
+    defer obj2.Close()
+    w.Header().Set("Content-Type", "image/gif")
+    io.Copy(w, obj2)
+}
+
+// VideoThumbnailAnimatedHandler serves animated GIF preview
+func VideoThumbnailAnimatedHandler(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    idStr := vars["id"]
+    id, err := strconv.Atoi(idStr)
+    if err != nil { http.Error(w, "Некорректный ID", http.StatusBadRequest); return }
+    var key string
+    if err := db.QueryRow("SELECT thumbnail_path FROM videos WHERE id=$1", id).Scan(&key); err != nil || key == "" {
+        http.Error(w, "Превью не найдено", http.StatusNotFound); return
+    }
+    bucket := os.Getenv("MINIO_BUCKET"); if bucket == "" { bucket = "videos" }
+    obj, err := minioClient.GetObject(r.Context(), bucket, key, minio.GetObjectOptions{})
+    if err != nil { http.Error(w, "Ошибка доступа к превью", http.StatusInternalServerError); return }
+    defer obj.Close()
+    w.Header().Set("Content-Type", "image/gif")
+    io.Copy(w, obj)
+}
+
+
+// probeDuration returns duration in seconds using ffprobe
+func probeDuration(path string) (float64, error) {
+    cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1", path)
+    out, err := cmd.CombinedOutput()
+    if err != nil {
+        return 0, fmt.Errorf("ffprobe failed: %v (%s)", err, string(out))
+    }
+    var dur float64
+    _, scanErr := fmt.Sscanf(string(out), "%f", &dur)
+    if scanErr != nil {
+        return 0, scanErr
+    }
+    return dur, nil
+}
+
+
+// transcodeVariants creates 720p and 480p variants and uploads to MinIO.
+func transcodeVariants(ctx context.Context, bucket, objectKey string) (string, string, error) {
+    dir, err := os.MkdirTemp("", "transcode")
+    if err != nil { return "", "", err }
+    defer os.RemoveAll(dir)
+
+    inPath := filepath.Join(dir, "in.mp4")
+    obj, err := minioClient.GetObject(ctx, bucket, objectKey, minio.GetObjectOptions{})
+    if err != nil { return "", "", err }
+    defer obj.Close()
+    out, err := os.Create(inPath); if err != nil { return "", "", err }
+    if _, err := io.Copy(out, obj); err != nil { out.Close(); return "", "", err }
+    out.Close()
+
+    out720 := filepath.Join(dir, "out_720.mp4")
+    out480 := filepath.Join(dir, "out_480.mp4")
+    // 720p (1280x720)
+    cmd720 := exec.Command("ffmpeg", "-y", "-loglevel", "error", "-i", inPath,
+        "-vf", "scale=w=1280:h=720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=black",
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-c:a", "aac", "-b:a", "128k", out720)
+    if err := cmd720.Run(); err != nil { return "", "", fmt.Errorf("ffmpeg 720p failed: %w", err) }
+
+    // 480p (854x480)
+    cmd480 := exec.Command("ffmpeg", "-y", "-loglevel", "error", "-i", inPath,
+        "-vf", "scale=w=854:h=480:force_original_aspect_ratio=decrease,pad=854:480:(ow-iw)/2:(oh-ih)/2:color=black",
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "24", "-c:a", "aac", "-b:a", "96k", out480)
+    if err := cmd480.Run(); err != nil { return "", "", fmt.Errorf("ffmpeg 480p failed: %w", err) }
+
+    // upload both
+    key720 := objectKey + ".720.mp4"
+    key480 := objectKey + ".480.mp4"
+    if f, err := os.Open(out720); err == nil {
+        st, _ := f.Stat()
+        _, err = minioClient.PutObject(ctx, bucket, key720, f, st.Size(), minio.PutObjectOptions{ContentType: "video/mp4"})
+        f.Close()
+        if err != nil { return "", "", err }
+    } else { return "", "", err }
+
+    if f, err := os.Open(out480); err == nil {
+        st, _ := f.Stat()
+        _, err = minioClient.PutObject(ctx, bucket, key480, f, st.Size(), minio.PutObjectOptions{ContentType: "video/mp4"})
+        f.Close()
+        if err != nil { return "", "", err }
+    } else { return "", "", err }
+
+    return key720, key480, nil
+}
+
+
+// RateVideoHandler sets/updates a rating 1..7
+func RateVideoHandler(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    id, _ := strconv.Atoi(vars["id"])
+    uid := r.Context().Value(ctxKeyUserID).(int)
+    var req struct{ Value int `json:"value"` }
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Value < 1 || req.Value > 7 {
+        http.Error(w, "Оценка 1..7", http.StatusBadRequest); return
+    }
+    _, err := db.Exec("INSERT INTO ratings (user_id, video_id, value) VALUES ($1,$2,$3) ON CONFLICT (user_id,video_id) DO UPDATE SET value=EXCLUDED.value",
+        uid, id, req.Value)
+    if err != nil { http.Error(w, "Ошибка БД", http.StatusInternalServerError); return }
+    var avg float64
+    _ = db.QueryRow("SELECT COALESCE(AVG(value),0) FROM ratings WHERE video_id=$1", id).Scan(&avg)
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]any{"video_id": id, "my_rating": req.Value, "avg_rating": avg})
+}
+
+func UnrateVideoHandler(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    id, _ := strconv.Atoi(vars["id"])
+    uid := r.Context().Value(ctxKeyUserID).(int)
+    _, err := db.Exec("DELETE FROM ratings WHERE user_id=$1 AND video_id=$2", uid, id)
+    if err != nil { http.Error(w, "Ошибка БД", http.StatusInternalServerError); return }
+    var avg float64
+    _ = db.QueryRow("SELECT COALESCE(AVG(value),0) FROM ratings WHERE video_id=$1", id).Scan(&avg)
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]any{"video_id": id, "my_rating": 0, "avg_rating": avg})
+}
+
+
+// UpdateCommentHandler - edit own comment or admin
+func UpdateCommentHandler(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    videoId, _ := strconv.Atoi(vars["id"])
+    commentId, _ := strconv.Atoi(vars["commentId"])
+    uid := r.Context().Value(ctxKeyUserID).(int)
+    role := r.Context().Value(ctxKeyUserRole).(string)
+    var author int
+    if err := db.QueryRow("SELECT user_id FROM comments WHERE id=$1 AND video_id=$2", commentId, videoId).Scan(&author); err != nil {
+        http.Error(w,"Комментарий не найден",http.StatusNotFound); return
+    }
+    if uid != author && role != "admin" { http.Error(w,"Нет прав",http.StatusForbidden); return }
+    var req struct{ Text string `json:"text"` }
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Text)=="" {
+        http.Error(w,"Некорректный текст",http.StatusBadRequest); return
+    }
+    if _, err := db.Exec("UPDATE comments SET text=$1 WHERE id=$2", req.Text, commentId); err != nil {
+        http.Error(w,"Ошибка БД",http.StatusInternalServerError); return
+    }
+    w.Header().Set("Content-Type","application/json")
+    json.NewEncoder(w).Encode(map[string]any{"id": commentId, "text": req.Text})
 }
