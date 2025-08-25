@@ -42,6 +42,7 @@ export default function VideoPlayer({ video, onLikeToggle, onRated, commentsUI }
       {/* Overlay controls */}
       <div style={{ position:'absolute', top:10, right:10, display:'flex', gap:8 }}>
         <button onClick={toggleLike}>{video.liked_by_user ? '♥' : '♡'} {video.likes_count}</button>
+        {commentsUI}
       </div>
 
       {/* Rating stars (1..7) */}
@@ -62,10 +63,6 @@ export default function VideoPlayer({ video, onLikeToggle, onRated, commentsUI }
         <span style={{ marginLeft: 8, fontSize: 12 }}>ср.: {video.avg_rating?.toFixed(1)}</span>
       </div>
 
-      {/* Comments trigger / panel */}
-      <div style={{ position:'absolute', bottom:10, right:10 }}>
-        {commentsUI}
-      </div>
     </div>
   );
 }
