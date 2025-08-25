@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS videos (
     product_links TEXT,
     video_path TEXT NOT NULL,
     thumbnail_path TEXT,
+    -- paths for transcoded variants
+    video_path_720 TEXT,
+    video_path_480 TEXT,
     is_approved BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -37,6 +40,14 @@ CREATE TABLE IF NOT EXISTS comments (
 CREATE TABLE IF NOT EXISTS likes (
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     video_id INT NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, video_id)
+);
+
+-- user ratings for videos (1..7)
+CREATE TABLE IF NOT EXISTS ratings (
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    video_id INT NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+    value INT NOT NULL CHECK (value BETWEEN 1 AND 7),
     PRIMARY KEY (user_id, video_id)
 );
 
