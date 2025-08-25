@@ -1,12 +1,21 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function VideoCard({ video }) {
+  const staticThumb = `/api/videos/${video.id}/thumbnail`;
+  const animatedThumb = `/api/videos/${video.id}/thumbnail/animated`;
+  const [src, setSrc] = useState(staticThumb);
+
   return (
     <div className="video-card">
       <Link to={`/video/${video.id}`} className="thumb-wrap">
-        <img src={`/api/videos/${video.id}/thumbnail`} alt={video.title} />
+        <img
+          src={src}
+          alt={video.title}
+          onMouseEnter={() => setSrc(animatedThumb)}
+          onMouseLeave={() => setSrc(staticThumb)}
+        />
       </Link>
       <div className="content">
         <h3><Link to={`/video/${video.id}`}>{video.title}</Link></h3>
