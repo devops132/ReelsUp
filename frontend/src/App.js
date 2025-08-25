@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import NavBar from './components/NavBar';
+import Footer from './components/Footer';
 import Feed from './pages/Feed';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/video/:id" element={<VideoPage />} />
             <Route path="/admin" element={<AdminPanel />} />
           </Routes>
+          <Footer />
         </div>
       </BrowserRouter>
     </AuthProvider>

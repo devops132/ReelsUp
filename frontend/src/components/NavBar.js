@@ -8,7 +8,12 @@ export default function NavBar({ darkMode, toggleTheme }) {
   const nav = useNavigate();
   return (
     <div className="navbar">
-      <div className="brand"><Link to="/"><img src="/logo.svg" alt="ReelsUp" /></Link></div>
+      <div className="brand">
+        <Link to="/">
+          <img src="/logo.svg" alt="ReelsUp" onError={(e)=>{e.currentTarget.style.display='none'; e.currentTarget.nextSibling.style.display='inline';}} />
+          <span className="brand-text">ReelsUp</span>
+        </Link>
+      </div>
       <div className="links">
         <button onClick={toggleTheme} title="Переключить тему">{darkMode ? '☀️' : '🌙'}</button>
         {user ? (<>
