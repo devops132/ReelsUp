@@ -1,4 +1,4 @@
-module videomarketplace
+module reelsup
 
 go 1.21
 
