@@ -8,7 +8,7 @@ export default function NavBar({ darkMode, toggleTheme }) {
   const nav = useNavigate();
   return (
     <div className="navbar">
-      <div className="brand"><Link to="/"><strong>VideoMarket</strong></Link></div>
+        <div className="brand"><Link to="/"><strong>ReelsUp</strong></Link></div>
       <div className="links">
         <button onClick={toggleTheme} title="Переключить тему">{darkMode ? '☀️' : '🌙'}</button>
         {user ? (<>
