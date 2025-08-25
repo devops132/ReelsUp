@@ -25,38 +25,33 @@ export default function VideoJSPlayer({ video, quality, onQualityChange }) {
       sources: [{ src: sources.find(s => s.label===quality)?.src || sources[sources.length-1].src, type: 'video/mp4' }]
     });
 
-    // simple quality button
+    // simple quality dropdown inserted into the control bar
     const controlBar = playerRef.current.getChild('controlBar');
-    const Component = videojs.getComponent('Component');
-    class QualityMenuItem extends Component {
-      constructor(player, options) {
-        super(player, options);
-        this.addClass('vjs-menu-button');
+    const wrapper = document.createElement('div');
+    wrapper.className = 'vjs-quality-menu vjs-control';
+    const select = document.createElement('select');
+    select.className = 'vjs-quality-select';
+    select.title = 'Качество';
+    sources.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.label;
+      opt.textContent = s.label;
+      if (s.label === quality) opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.onchange = () => {
+      const lbl = select.value;
+      const src = sources.find(x => x.label === lbl)?.src;
+      if (src) {
+        const wasPlaying = !playerRef.current.paused();
+        playerRef.current.src({ src, type: 'video/mp4' });
+        if (wasPlaying) playerRef.current.play();
+        onQualityChange && onQualityChange(lbl);
       }
-      createEl() {
-        const el = videojs.dom.createEl('div', { className: 'vjs-quality-menu vjs-control' });
-        const select = videojs.dom.createEl('select', { className: 'vjs-quality-select', title: 'Качество' });
-        sources.forEach(s => {
-          const opt = videojs.dom.createEl('option', { innerHTML: s.label, value: s.label });
-          if (s.label === quality) opt.setAttribute('selected', 'selected');
-          select.appendChild(opt);
-        });
-        select.onchange = () => {
-          const lbl = select.value;
-          const src = sources.find(x => x.label === lbl)?.src;
-          if (src) {
-            const wasPlaying = !playerRef.current.paused();
-            playerRef.current.src({ src, type: 'video/mp4' });
-            if (wasPlaying) playerRef.current.play();
-            onQualityChange && onQualityChange(lbl);
-          }
-        };
-        el.appendChild(select);
-        return el;
-      }
-    }
-    const btn = new QualityMenuItem(playerRef.current, {});
-    controlBar.el().insertBefore(btn.el(), controlBar.getChild('fullscreenToggle').el());
+    };
+    wrapper.appendChild(select);
+    const fullscreenToggle = controlBar.getChild('fullscreenToggle');
+    controlBar.el().insertBefore(wrapper, fullscreenToggle ? fullscreenToggle.el() : null);
 
     return () => {
       if (playerRef.current) {
