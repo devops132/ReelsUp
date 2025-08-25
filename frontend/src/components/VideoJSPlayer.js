@@ -27,14 +27,13 @@ export default function VideoJSPlayer({ video, quality, onQualityChange }) {
 
     // simple quality button
     const controlBar = playerRef.current.getChild('controlBar');
-    const MenuButton = videojs.getComponent('MenuButton');
     const Component = videojs.getComponent('Component');
-    const QualityMenuItem = videojs.extend(Component, {
-      constructor: function(player, options) {
-        Component.apply(this, arguments);
+    class QualityMenuItem extends Component {
+      constructor(player, options) {
+        super(player, options);
         this.addClass('vjs-menu-button');
-      },
-      createEl: function() {
+      }
+      createEl() {
         const el = videojs.dom.createEl('div', { className: 'vjs-quality-menu vjs-control' });
         const select = videojs.dom.createEl('select', { className: 'vjs-quality-select', title: 'Качество' });
         sources.forEach(s => {
@@ -42,7 +41,7 @@ export default function VideoJSPlayer({ video, quality, onQualityChange }) {
           if (s.label === quality) opt.setAttribute('selected', 'selected');
           select.appendChild(opt);
         });
-        select.onchange = (e) => {
+        select.onchange = () => {
           const lbl = select.value;
           const src = sources.find(x => x.label === lbl)?.src;
           if (src) {
@@ -55,7 +54,7 @@ export default function VideoJSPlayer({ video, quality, onQualityChange }) {
         el.appendChild(select);
         return el;
       }
-    });
+    }
     const btn = new QualityMenuItem(playerRef.current, {});
     controlBar.el().insertBefore(btn.el(), controlBar.getChild('fullscreenToggle').el());
 

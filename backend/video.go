@@ -145,12 +145,24 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request) {
 
 func VideoContentHandler(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
-	var path string
+	var orig, p720, p480 string
 	var approved bool
 	var owner int
-	if err := db.QueryRow("SELECT video_path, is_approved, user_id FROM videos WHERE id=$1", id).Scan(&path, &approved, &owner); err != nil {
+	if err := db.QueryRow("SELECT video_path, video_path_720, video_path_480, is_approved, user_id FROM videos WHERE id=$1", id).Scan(&orig, &p720, &p480, &approved, &owner); err != nil {
 		http.Error(w, "Видео не найдено", http.StatusNotFound)
 		return
+	}
+	quality := r.URL.Query().Get("quality")
+	path := orig
+	switch quality {
+	case "720p":
+		if p720 != "" {
+			path = p720
+		}
+	case "480p":
+		if p480 != "" {
+			path = p480
+		}
 	}
 	if !approved {
 		uid, uidOk := r.Context().Value(ctxKeyUserID).(int)
@@ -247,6 +259,17 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Ошибка сохранения метаданных", http.StatusInternalServerError)
 		return
 	}
+
+	go func() {
+		ctx := context.Background()
+		if thumb, err := generatePreviewGIF(ctx, bucket, objectName); err == nil {
+			_, _ = db.Exec("UPDATE videos SET thumbnail_path=$1 WHERE id=$2", thumb, videoID)
+		}
+		if k720, k480, err := transcodeVariants(ctx, bucket, objectName); err == nil {
+			_, _ = db.Exec("UPDATE videos SET video_path_720=$1, video_path_480=$2 WHERE id=$3", k720, k480, videoID)
+		}
+	}()
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{"message": "Видео загружено, ожидает модерации", "video_id": videoID})
 }
