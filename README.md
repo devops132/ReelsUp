@@ -1,26 +1,58 @@
+# ReelsUp – Video Marketplace MVP
 
-# Video Marketplace MVP (Go + React, Docker Compose)
+ReelsUp – прототип маркетплейса коротких видео для продвижения товаров. Проект полностью собирается через Docker и включает REST API на Go, фронтенд на React, хранилище объектов MinIO и обратный прокси Nginx.
 
-Инструкция по запуску:
+## Возможности
+- **Регистрация и роли**: обычный пользователь, бизнес‑аккаунт и админ. Авторизация осуществляется через JWT.
+- **Загрузка видео**: ролики сохраняются в MinIO, автоматически генерируется превью‑GIF и статичный кадр, а также версии 720p/480p (FFmpeg).
+- **Категории и поиск**: у видео есть теги и категория; поиск по названию, описанию и тегам.
+- **Взаимодействие**: лайки, оценки 1‑7, комментарии с редактированием/удалением.
+- **Бизнес‑функции**: бизнес‑пользователь может прикреплять ссылки на товары к ролику.
+- **Админ‑панель**: модерация и удаление роликов, управление пользователями и их ролями.
 
-1) Скопируйте `.env.example` в `.env` и при необходимости измените значения.
-2) Запустите проект:
+## Архитектура
+```
+Nginx → React SPA (порт 80 → 3000)
+      ↘ Go backend (порт 80 → 8080)
+PostgreSQL ← хранение данных
+MinIO ← хранение файлов
+```
+
+## Быстрый старт
+1. Скопируйте `.env.example` в `.env` и при необходимости измените значения.
+2. Запустите проект:
    ```bash
    docker-compose up --build
    ```
-3) Откройте в браузере: http://localhost
+3. Откройте в браузере: [http://localhost](http://localhost)
 
-Доступы по умолчанию:
-- Админ: `admin@example.com` / `admin123`
-- Бизнес: `business@example.com` / `business123`
+### Доступы по умолчанию
+- **Админ:** `admin@example.com` / `admin123`
+- **Бизнес:** `business@example.com` / `business123`
 
-Сервисы:
-- Nginx (gateway) — порт 80
-- Backend (Go) — сервис `backend`
-- Frontend (React) — сервис `frontend`
-- PostgreSQL — сервис `postgres`
-- MinIO — сервис `minio` (консоль http://localhost:9001, логин/пароль из .env)
+### Переменные окружения
+| Переменная | Назначение |
+|-----------|------------|
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | настройки базы |
+| `JWT_SECRET` | секрет для подписи токенов |
+| `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | доступ к MinIO |
+| `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `MINIO_ENDPOINT` | параметры клиента MinIO |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | начальные данные администратора |
 
-Тесты:
-- Backend: `docker-compose exec backend go test ./...`
-- Frontend: `docker-compose exec frontend npm test -- --watchAll=false`
+## Структура проекта
+- `backend/` – REST API на Go.
+- `frontend/` – React SPA.
+- `db/` – SQL‑скрипты и миграции.
+- `nginx/` – конфигурация обратного прокси.
+
+## Тестирование
+- Backend: `go test ./...`
+- Frontend: `node node_modules/react-scripts/bin/react-scripts.js test --watchAll=false`
+
+## Дальнейшие планы
+- платежи и подписки;
+- аналитика просмотров и рекомендательная лента;
+- уведомления (email/WebSocket);
+- мобильные приложения и загрузка с устройств;
+- многоязычный интерфейс и локализация.
+
