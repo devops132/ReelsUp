@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -76,6 +77,7 @@ func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
 	query += " ORDER BY v.created_at DESC"
 	rows, err := db.Query(query, params...)
 	if err != nil {
+		log.Printf("ListVideosHandler: query error: %v", err)
 		http.Error(w, "Ошибка запроса видео", http.StatusInternalServerError)
 		return
 	}
@@ -86,6 +88,7 @@ func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
 		var catID sql.NullInt32
 		if err := rows.Scan(&v.ID, &v.Title, &v.Description, &v.Tags, &v.ProductLinks, &v.Thumbnail, &v.VideoPath,
 			&v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.LikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480); err != nil {
+			log.Printf("ListVideosHandler: scan error: %v, video ID: %v", err, v.ID)
 			http.Error(w, "Ошибка данных", http.StatusInternalServerError)
 			return
 		}
@@ -95,7 +98,10 @@ func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
 		out = append(out, v)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(out)
+	if err := json.NewEncoder(w).Encode(out); err != nil {
+		log.Printf("ListVideosHandler: JSON encode error: %v", err)
+		http.Error(w, "Ошибка формирования ответа", http.StatusInternalServerError)
+	}
 }
 
 func GetVideoHandler(w http.ResponseWriter, r *http.Request) {
