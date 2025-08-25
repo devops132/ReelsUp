@@ -176,106 +176,106 @@ func VideoContentHandler(w http.ResponseWriter, r *http.Request) {
 	if bucket == "" {
 		bucket = "videos"
 	}
-        info, err := minioClient.StatObject(r.Context(), bucket, path, minio.StatObjectOptions{})
-        if err != nil {
-                http.Error(w, "Файл не найден", http.StatusNotFound)
-                return
-        }
-        rangeHeader := r.Header.Get("Range")
-        w.Header().Set("Accept-Ranges", "bytes")
-        if rangeHeader == "" {
-                // stream full file
-                obj, err := minioClient.GetObject(r.Context(), bucket, path, minio.GetObjectOptions{})
-                if err != nil {
-                        http.Error(w, "Ошибка доступа к файлу", http.StatusInternalServerError)
-                        return
-                }
-                defer obj.Close()
-                if info.Size > 0 {
-                        w.Header().Set("Content-Length", fmt.Sprintf("%d", info.Size))
-                }
-                if info.ContentType != "" {
-                        w.Header().Set("Content-Type", info.ContentType)
-                } else {
-                        w.Header().Set("Content-Type", "application/octet-stream")
-                }
-                if _, err := io.Copy(w, obj); err != nil {
-                        fmt.Println("stream error:", err)
-                }
-                return
-        }
+	info, err := minioClient.StatObject(r.Context(), bucket, path, minio.StatObjectOptions{})
+	if err != nil {
+		http.Error(w, "Файл не найден", http.StatusNotFound)
+		return
+	}
+	rangeHeader := r.Header.Get("Range")
+	w.Header().Set("Accept-Ranges", "bytes")
+	if rangeHeader == "" {
+		// stream full file
+		obj, err := minioClient.GetObject(r.Context(), bucket, path, minio.GetObjectOptions{})
+		if err != nil {
+			http.Error(w, "Ошибка доступа к файлу", http.StatusInternalServerError)
+			return
+		}
+		defer obj.Close()
+		if info.Size > 0 {
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", info.Size))
+		}
+		if info.ContentType != "" {
+			w.Header().Set("Content-Type", info.ContentType)
+		} else {
+			w.Header().Set("Content-Type", "application/octet-stream")
+		}
+		if _, err := io.Copy(w, obj); err != nil {
+			fmt.Println("stream error:", err)
+		}
+		return
+	}
 
-        start, end, err := parseRangeHeader(rangeHeader, info.Size)
-        if err != nil {
-                w.Header().Set("Content-Range", fmt.Sprintf("bytes */%d", info.Size))
-                http.Error(w, "Неверный диапазон", http.StatusRequestedRangeNotSatisfiable)
-                return
-        }
-        opts := minio.GetObjectOptions{}
-        if err := opts.SetRange(start, end); err != nil {
-                http.Error(w, "Неверный диапазон", http.StatusRequestedRangeNotSatisfiable)
-                return
-        }
-        obj, err := minioClient.GetObject(r.Context(), bucket, path, opts)
-        if err != nil {
-                http.Error(w, "Ошибка доступа к файлу", http.StatusInternalServerError)
-                return
-        }
-        defer obj.Close()
-        length := end - start + 1
-        w.Header().Set("Content-Length", fmt.Sprintf("%d", length))
-        w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, info.Size))
-        if info.ContentType != "" {
-                w.Header().Set("Content-Type", info.ContentType)
-        } else {
-                w.Header().Set("Content-Type", "application/octet-stream")
-        }
-        w.WriteHeader(http.StatusPartialContent)
-        if _, err := io.Copy(w, obj); err != nil {
-                fmt.Println("stream error:", err)
-        }
+	start, end, err := parseRangeHeader(rangeHeader, info.Size)
+	if err != nil {
+		w.Header().Set("Content-Range", fmt.Sprintf("bytes */%d", info.Size))
+		http.Error(w, "Неверный диапазон", http.StatusRequestedRangeNotSatisfiable)
+		return
+	}
+	opts := minio.GetObjectOptions{}
+	if err := opts.SetRange(start, end); err != nil {
+		http.Error(w, "Неверный диапазон", http.StatusRequestedRangeNotSatisfiable)
+		return
+	}
+	obj, err := minioClient.GetObject(r.Context(), bucket, path, opts)
+	if err != nil {
+		http.Error(w, "Ошибка доступа к файлу", http.StatusInternalServerError)
+		return
+	}
+	defer obj.Close()
+	length := end - start + 1
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", length))
+	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, info.Size))
+	if info.ContentType != "" {
+		w.Header().Set("Content-Type", info.ContentType)
+	} else {
+		w.Header().Set("Content-Type", "application/octet-stream")
+	}
+	w.WriteHeader(http.StatusPartialContent)
+	if _, err := io.Copy(w, obj); err != nil {
+		fmt.Println("stream error:", err)
+	}
 }
 
 func parseRangeHeader(header string, size int64) (int64, int64, error) {
-        if !strings.HasPrefix(header, "bytes=") {
-                return 0, 0, fmt.Errorf("invalid range")
-        }
-        spec := strings.TrimPrefix(header, "bytes=")
-        if strings.HasPrefix(spec, "-") {
-                // suffix bytes
-                length, err := strconv.ParseInt(spec[1:], 10, 64)
-                if err != nil {
-                        return 0, 0, err
-                }
-                if length > size {
-                        length = size
-                }
-                return size - length, size - 1, nil
-        }
-        parts := strings.Split(spec, "-")
-        if len(parts) != 2 {
-                return 0, 0, fmt.Errorf("invalid range")
-        }
-        start, err := strconv.ParseInt(parts[0], 10, 64)
-        if err != nil {
-                return 0, 0, err
-        }
-        var end int64
-        if parts[1] == "" {
-                end = size - 1
-        } else {
-                end, err = strconv.ParseInt(parts[1], 10, 64)
-                if err != nil {
-                        return 0, 0, err
-                }
-                if end >= size {
-                        end = size - 1
-                }
-        }
-        if start > end || start < 0 {
-                return 0, 0, fmt.Errorf("invalid range")
-        }
-        return start, end, nil
+	if !strings.HasPrefix(header, "bytes=") {
+		return 0, 0, fmt.Errorf("invalid range")
+	}
+	spec := strings.TrimPrefix(header, "bytes=")
+	if strings.HasPrefix(spec, "-") {
+		// suffix bytes
+		length, err := strconv.ParseInt(spec[1:], 10, 64)
+		if err != nil {
+			return 0, 0, err
+		}
+		if length > size {
+			length = size
+		}
+		return size - length, size - 1, nil
+	}
+	parts := strings.Split(spec, "-")
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("invalid range")
+	}
+	start, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+	var end int64
+	if parts[1] == "" {
+		end = size - 1
+	} else {
+		end, err = strconv.ParseInt(parts[1], 10, 64)
+		if err != nil {
+			return 0, 0, err
+		}
+		if end >= size {
+			end = size - 1
+		}
+	}
+	if start > end || start < 0 {
+		return 0, 0, fmt.Errorf("invalid range")
+	}
+	return start, end, nil
 }
 
 func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
@@ -303,6 +303,7 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 	if role != "business" {
 		productLinks = ""
 	}
+	isApproved := role == "admin"
 
 	objectName := fmt.Sprintf("%d_%d_%s", uid, time.Now().Unix(), hdr.Filename)
 	bucket := os.Getenv("MINIO_BUCKET")
@@ -327,11 +328,11 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 	if catId != nil {
 		err = db.QueryRow(`INSERT INTO videos (user_id, category_id, title, description, tags, product_links, video_path, thumbnail_path, is_approved)
                            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
-			uid, *catId, title, description, tags, productLinks, objectName, "", false).Scan(&videoID)
+			uid, *catId, title, description, tags, productLinks, objectName, "", isApproved).Scan(&videoID)
 	} else {
 		err = db.QueryRow(`INSERT INTO videos (user_id, title, description, tags, product_links, video_path, thumbnail_path, is_approved)
                            VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
-			uid, title, description, tags, productLinks, objectName, "", false).Scan(&videoID)
+			uid, title, description, tags, productLinks, objectName, "", isApproved).Scan(&videoID)
 	}
 	if err != nil {
 		http.Error(w, "Ошибка сохранения метаданных", http.StatusInternalServerError)
@@ -348,8 +349,12 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	msg := "Видео загружено, ожидает модерации"
+	if isApproved {
+		msg = "Видео загружено и опубликовано"
+	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"message": "Видео загружено, ожидает модерации", "video_id": videoID})
+	json.NewEncoder(w).Encode(map[string]any{"message": msg, "video_id": videoID})
 }
 
 func DeleteVideoHandler(w http.ResponseWriter, r *http.Request) {
