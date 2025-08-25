@@ -22,10 +22,11 @@ func AdminListVideosHandler(w http.ResponseWriter, r *http.Request) {
 			v.is_approved,
 			(v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') AS has_720,
 			(v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') AS has_480
-		FROM videos v
-		JOIN users u ON u.id = v.user_id
-		LEFT JOIN categories c ON c.id = v.category_id
-		ORDER BY v.created_at DESC`)
+                FROM videos v
+                JOIN users u ON u.id = v.user_id
+                LEFT JOIN categories c ON c.id = v.category_id
+                WHERE v.is_approved = FALSE
+                ORDER BY v.created_at DESC`)
 	if err != nil {
 		http.Error(w, "Ошибка получения видео", http.StatusInternalServerError)
 		return
