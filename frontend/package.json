@@ -13,11 +13,13 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --watchAll=false",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "postinstall": "patch-package"
   },
   "devDependencies": {
-    "@testing-library/react": "14.0.0",
     "@testing-library/jest-dom": "6.4.6",
-    "eslint-plugin-react-hooks": "4.6.0"
+    "@testing-library/react": "14.0.0",
+    "eslint-plugin-react-hooks": "4.6.0",
+    "patch-package": "^8.0.0"
   }
 }
