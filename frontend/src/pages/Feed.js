@@ -2,9 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { apiGet } from '../api';
 import VideoCard from '../components/VideoCard';
+import VideoSkeleton from '../components/VideoSkeleton';
 
 export default function Feed() {
   const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [categories, setCategories] = useState([]);
@@ -15,18 +17,22 @@ export default function Feed() {
   }, []);
 
   const load = (qq='', cc='') => {
+    setLoading(true);
     let url = '/api/videos';
     const params = [];
     if (qq) params.push('q='+encodeURIComponent(qq));
     if (cc) params.push('category='+cc);
     if (params.length) url += '?' + params.join('&');
-    apiGet(url).then(setVideos).catch(()=>{});
+    apiGet(url)
+      .then(data => { setVideos(data); setLoading(false); })
+      .catch(() => setLoading(false));
   };
 
   const search = (e) => { e.preventDefault(); load(q, category); };
 
   return (
     <div>
+      <h1 className="section-header">Лента ReelsUp</h1>
       <form onSubmit={search} style={{ textAlign:'center', marginTop:10 }}>
         <input placeholder="Поиск..." value={q} onChange={e=>setQ(e.target.value)} />
         <select value={category} onChange={e=>setCategory(e.target.value)} style={{ marginLeft: 6 }}>
@@ -36,7 +42,9 @@ export default function Feed() {
         <button style={{ marginLeft: 6 }}>Найти</button>
       </form>
       <div className="feed">
-        {videos.map(v => <VideoCard key={v.id} video={v} />)}
+        {loading
+          ? Array.from({ length: 6 }).map((_, i) => <VideoSkeleton key={i} />)
+          : videos.map(v => <VideoCard key={v.id} video={v} />)}
       </div>
     </div>
   );

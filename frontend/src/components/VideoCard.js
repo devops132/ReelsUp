@@ -19,8 +19,14 @@ export default function VideoCard({ video }) {
       </Link>
       <div className="content">
         <h3><Link to={`/video/${video.id}`}>{video.title}</Link></h3>
-        <small>Автор: {video.user_name} {video.category_name && (` | Категория: ${video.category_name}`)}</small><br/>
-        <small>Лайков: {video.likes_count} | Комментариев: {video.comments_count}{!video.is_approved && <span style={{color:'orange'}}> (на модерации)</span>}</small>
+        <small>
+          Автор: {video.user_name}
+          {video.category_name && <span className="badge">{video.category_name}</span>}
+        </small><br/>
+        <small>
+          Лайков: {video.likes_count} | Комментариев: {video.comments_count}
+          {!video.is_approved && <span className="badge" style={{background:'orange'}}>Модерация</span>}
+        </small>
       </div>
     </div>
   );

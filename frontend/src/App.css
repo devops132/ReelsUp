@@ -1,20 +1,22 @@
 
 .light {
-  --bg-color: #ffffff;
-  --text-color: #0b2239;
-  --accent-color: #2fc3c9; /* бирюзово-голубой */
-  --card-bg: #f6fbff;
-  --border-color: #d6e6f2;
+  --bg-color: #fdfdfe;
+  --text-color: #1e293b;
+  --accent-color: #ff7aa2;
+  --card-bg: #ffffff;
+  --border-color: #e2e8f0;
+  --bg-gradient: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
 }
 .dark {
   --bg-color: #0b0f14;
   --text-color: #e0f0ff;
-  --accent-color: #3dd9df;
+  --accent-color: #ff86b3;
   --card-bg: #151a22;
   --border-color: #263141;
+  --bg-gradient: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
 }
-html, body { margin: 0; padding: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-.app-container { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; }
+html, body { margin: 0; padding: 0; font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+.app-container { background: var(--bg-gradient); color: var(--text-color); min-height: 100vh; }
 a { color: var(--accent-color); text-decoration: none; }
 a:hover { text-decoration: underline; }
 .navbar {
@@ -28,20 +30,48 @@ a:hover { text-decoration: underline; }
   margin-right: 12px;
 }
 .brand { font-weight: 800; letter-spacing: .4px; }
+.section-header {
+  text-align: center;
+  padding: 40px 0 20px;
+  font-size: 2rem;
+  font-weight: 700;
+}
 .feed {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 16px;
-  padding: 16px; max-width: 1100px; margin: 0 auto;
+  column-width: 320px;
+  column-gap: 16px;
+  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+@media (max-width: 768px) {
+  .feed {
+    column-width: 100%;
+  }
 }
 .video-card {
   border: 1px solid var(--border-color);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--card-bg);
   overflow: hidden;
-  box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  margin: 0 0 16px;
+  transition: transform .2s, box-shadow .2s;
 }
-.video-card .content { padding: 10px 12px; }
+.video-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+.video-card .content { padding: 12px 14px; }
 .video-card h3 { margin: 6px 0; font-size: 1.05rem; }
 .video-card small { color: #718096; }
+.badge {
+  background: var(--accent-color);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  margin-left: 6px;
+}
 /* thumbnail handled via .thumb-wrap */
 input, select, textarea, button {
   background: var(--bg-color); color: var(--text-color);
