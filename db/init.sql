@@ -29,6 +29,12 @@ CREATE TABLE IF NOT EXISTS videos (
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+-- ensure columns exist for legacy databases
+ALTER TABLE IF EXISTS videos
+    ADD COLUMN IF NOT EXISTS video_path_720 TEXT,
+    ADD COLUMN IF NOT EXISTS video_path_480 TEXT,
+    ADD COLUMN IF NOT EXISTS is_approved BOOLEAN NOT NULL DEFAULT FALSE;
+
 CREATE TABLE IF NOT EXISTS comments (
     id SERIAL PRIMARY KEY,
     video_id INT NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
