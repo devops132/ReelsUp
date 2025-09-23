@@ -8,7 +8,7 @@ import (
     "strings"
     "time"
 
-    "github.com/golang-jwt/jwt/v4"
+    "github.com/golang-jwt/jwt/v5"
     pq "github.com/lib/pq"
     "golang.org/x/crypto/bcrypt"
 )
