@@ -23,13 +23,13 @@ export default function VideoCard({ video }) {
         <small>
           Автор: {video.user_name}
           {video.category_name && (
-            <Link to={`/?category=${video.category_id}`} className="badge" data-tooltip="Фильтр по категории" style={{ marginLeft: 6 }}>{video.category_name}</Link>
+            <Link to={`/?categories=${video.category_id}`} className="badge" data-tooltip="Добавить категорию в фильтр" style={{ marginLeft: 6 }}>{video.category_name}</Link>
           )}
         </small><br/>
         {video.tags && (
           <div style={{ marginTop:6, display:'flex', flexWrap:'wrap', gap:6 }}>
             {video.tags.split(/[,\s]+/).filter(Boolean).slice(0,6).map((t,i) => (
-              <Link key={i} to={`/?tag=${encodeURIComponent(t)}`} className="badge" data-tooltip={`Фильтр по тегу ${t}`}>{t.startsWith('#') ? t : ('#'+t)}</Link>
+              <Link key={i} to={`/?tags=${encodeURIComponent(t)}`} className="badge" data-tooltip={`Добавить тег в фильтр`}>{t.startsWith('#') ? t : ('#'+t)}</Link>
             ))}
           </div>
         )}
