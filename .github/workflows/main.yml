@@ -26,6 +26,11 @@ jobs:
             export DOCKER_BUILDKIT=1
             export COMPOSE_DOCKER_CLI_BUILD=1
             docker-compose down --remove-orphans
+            # If DOMAIN is set, issue/renew Let's Encrypt certs (first run and renew)
+            if [ -n "${DOMAIN}" ]; then
+              docker-compose run --rm certbot certonly --webroot -w /var/www/certbot \
+                --email ${LE_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN}
+            fi
             docker-compose up -d --build
             docker image prune -f
 
