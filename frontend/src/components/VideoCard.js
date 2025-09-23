@@ -23,7 +23,9 @@ export default function VideoCard({ video }) {
         <small>
           Автор: {video.user_name}
           {video.category_name && (
-            <Link to={`/?categories=${video.category_id}`} className="badge" data-tooltip="Добавить категорию в фильтр" style={{ marginLeft: 6 }}>{video.category_name}</Link>
+            <Link to={`/?categories=${video.category_id}`} className="badge" data-tooltip="Добавить категорию в фильтр" style={{ marginLeft: 6 }}>
+              {video.parent_category_name ? `${video.parent_category_name} › ${video.category_name}` : video.category_name}
+            </Link>
           )}
         </small><br/>
         {video.tags && (
