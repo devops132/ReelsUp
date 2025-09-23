@@ -21,7 +21,6 @@ jobs:
             # убедимся, что есть ключ для доступа к GitHub (deploy key) и known_hosts
             if ! grep -q github.com ~/.ssh/known_hosts; then ssh-keyscan -H github.com >> ~/.ssh/known_hosts; fi
             export GIT_SSH_COMMAND='ssh -i ~/.ssh/reelsup_deploy'
-            git reset --hard origin/main
             git pull
             docker-compose down 
             docker-compose up -d --build
