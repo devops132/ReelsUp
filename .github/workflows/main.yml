@@ -23,6 +23,6 @@ jobs:
             export GIT_SSH_COMMAND='ssh -i ~/.ssh/reelsup_deploy'
             git reset --hard origin/main
             git pull
-            docker compose down 
-            docker compose up -d --build
+            docker-compose down 
+            docker-compose up -d --build
 
