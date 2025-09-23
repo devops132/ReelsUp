@@ -1,0 +1,28 @@
+name: Deploy to VM
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            cd ${{ secrets.DEPLOY_PATH }}
+            # убедимся, что есть ключ для доступа к GitHub (deploy key) и known_hosts
+            if ! grep -q github.com ~/.ssh/known_hosts; then ssh-keyscan -H github.com >> ~/.ssh/known_hosts; fi
+            export GIT_SSH_COMMAND='ssh -i ~/.ssh/reelsup_deploy'
+            git fetch --all
+            git reset --hard origin/main
+            docker compose down --remove-orphans
+            docker compose up -d --build
+            docker image prune -f
