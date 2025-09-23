@@ -20,29 +20,30 @@ import (
 )
 
 type Video struct {
-	ID             int       `json:"id"`
-	Title          string    `json:"title"`
-	Description    string    `json:"description"`
-	Tags           string    `json:"tags,omitempty"`
-	ProductLinks   string    `json:"product_links,omitempty"`
-	Thumbnail      string    `json:"thumbnail_path,omitempty"`
-	VideoPath      string    `json:"video_path,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
-	UserID         int       `json:"user_id"`
-	UserName       string    `json:"user_name"`
-	CategoryID     int       `json:"category_id,omitempty"`
-	CategoryName   string    `json:"category_name,omitempty"`
-	LikesCount     int       `json:"likes_count"`
-	DislikesCount  int       `json:"dislikes_count"`
-	CommentsCount  int       `json:"comments_count"`
-	IsApproved     bool      `json:"is_approved"`
-	LikedByUser    bool      `json:"liked_by_user"`
-	DislikedByUser bool      `json:"disliked_by_user"`
-	Has720         bool      `json:"has_720"`
-	Has480         bool      `json:"has_480"`
-	AvgRating      float64   `json:"avg_rating"`
-	MyRating       int       `json:"my_rating"`
-	ViewsCount     int       `json:"views_count"`
+	ID                 int       `json:"id"`
+	Title              string    `json:"title"`
+	Description        string    `json:"description"`
+	Tags               string    `json:"tags,omitempty"`
+	ProductLinks       string    `json:"product_links,omitempty"`
+	Thumbnail          string    `json:"thumbnail_path,omitempty"`
+	VideoPath          string    `json:"video_path,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	UserID             int       `json:"user_id"`
+	UserName           string    `json:"user_name"`
+	CategoryID         int       `json:"category_id,omitempty"`
+	CategoryName       string    `json:"category_name,omitempty"`
+	ParentCategoryName string    `json:"parent_category_name,omitempty"`
+	LikesCount         int       `json:"likes_count"`
+	DislikesCount      int       `json:"dislikes_count"`
+	CommentsCount      int       `json:"comments_count"`
+	IsApproved         bool      `json:"is_approved"`
+	LikedByUser        bool      `json:"liked_by_user"`
+	DislikedByUser     bool      `json:"disliked_by_user"`
+	Has720             bool      `json:"has_720"`
+	Has480             bool      `json:"has_480"`
+	AvgRating          float64   `json:"avg_rating"`
+	MyRating           int       `json:"my_rating"`
+	ViewsCount         int       `json:"views_count"`
 }
 
 func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +55,7 @@ func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
 	exclude := r.URL.Query().Get("exclude")
 	query := `SELECT v.id, v.title, v.description, v.tags, v.product_links, v.thumbnail_path, v.video_path,
                      v.created_at, v.user_id, COALESCE(u.name,''),
-                     v.category_id, COALESCE(c.name,''),
+	                     v.category_id, COALESCE(c.name,''), COALESCE(pc.name,''),
                      (SELECT COUNT(*) FROM likes l WHERE l.video_id = v.id)            AS likes,
                      (SELECT COUNT(*) FROM dislikes d WHERE d.video_id = v.id)         AS dislikes,
                      (SELECT COUNT(*) FROM comments m WHERE m.video_id = v.id)         AS comments,
@@ -65,7 +66,8 @@ func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
                      v.views_count
               FROM videos v
               JOIN users u ON u.id = v.user_id
-              LEFT JOIN categories c ON c.id = v.category_id
+	              LEFT JOIN categories c ON c.id = v.category_id
+	              LEFT JOIN categories pc ON pc.id = c.parent_id
               WHERE v.is_approved = TRUE`
 	params := []any{}
 	if q != "" {
@@ -152,7 +154,7 @@ func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
 		var v Video
 		var catID sql.NullInt32
 		if err := rows.Scan(&v.ID, &v.Title, &v.Description, &v.Tags, &v.ProductLinks, &v.Thumbnail, &v.VideoPath,
-			&v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.LikesCount, &v.DislikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480, &v.ViewsCount); err != nil {
+			&v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.ParentCategoryName, &v.LikesCount, &v.DislikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480, &v.ViewsCount); err != nil {
 			log.Printf("ListVideosHandler: scan error: %v, video ID: %v", err, v.ID)
 			http.Error(w, "Ошибка данных", http.StatusInternalServerError)
 			return

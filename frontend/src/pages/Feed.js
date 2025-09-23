@@ -116,7 +116,7 @@ export default function Feed() {
         <input placeholder="Поиск..." value={q} onChange={e=>setQ(e.target.value)} />
         <select value={category} onChange={e=>{ const val = e.target.value; setCategory(val); if (val) addFilterCat(val); }} style={{ marginLeft: 6 }}>
           <option value="">Все категории</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {categories.map(c => <option key={c.id} value={c.id}>{c.parent_id ? `${c.name} (${(categories.find(x=>x.id===c.parent_id)?.name)||'—'})` : c.name}</option>)}
         </select>
         <select value={sort} onChange={e=>{ setSort(e.target.value); load(q, category, e.target.value); }} style={{ marginLeft: 6 }}>
           <option value="new">Новые</option>
