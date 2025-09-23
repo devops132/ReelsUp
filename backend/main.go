@@ -203,6 +203,7 @@ log.Println("seedAdmin: env check -> ADMIN_EMAIL=", adminEmailLog, " ADMIN_PASSW
     authR.Use(JWTAuthMiddleware)
     authR.HandleFunc("/videos", UploadVideoHandler).Methods("POST")
     authR.HandleFunc("/videos/{id:[0-9]+}", DeleteVideoHandler).Methods("DELETE")
+    authR.HandleFunc("/videos/{id:[0-9]+}", UpdateVideoMetaHandler).Methods("PUT")
     authR.HandleFunc("/videos/{id:[0-9]+}/comments", CreateCommentHandler).Methods("POST")
     authR.HandleFunc("/videos/{id:[0-9]+}/comments/{commentId:[0-9]+}", DeleteCommentHandler).Methods("DELETE")
 	authR.HandleFunc("/videos/{id:[0-9]+}/comments/{commentId:[0-9]+}", UpdateCommentHandler).Methods("PUT")

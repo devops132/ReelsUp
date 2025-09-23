@@ -418,6 +418,103 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Видео удалено"})
 }
 
+// UpdateVideoMetaHandler allows video owner or admin to update category, tags, and description
+func UpdateVideoMetaHandler(w http.ResponseWriter, r *http.Request) {
+    id, _ := strconv.Atoi(mux.Vars(r)["id"])
+    uid := r.Context().Value(ctxKeyUserID).(int)
+    role := r.Context().Value(ctxKeyUserRole).(string)
+
+    var owner int
+    if err := db.QueryRow("SELECT user_id FROM videos WHERE id=$1", id).Scan(&owner); err != nil {
+        http.Error(w, "Видео не найдено", http.StatusNotFound)
+        return
+    }
+    if uid != owner && role != "admin" {
+        http.Error(w, "Нет прав", http.StatusForbidden)
+        return
+    }
+
+    var req struct {
+        CategoryID *int   `json:"category_id"`
+        Tags       *string `json:"tags"`
+        Description *string `json:"description"`
+    }
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        http.Error(w, "Некорректные данные", http.StatusBadRequest)
+        return
+    }
+
+    // Validate category if provided
+    if req.CategoryID != nil {
+        if *req.CategoryID == 0 {
+            // zero means clear category
+        } else {
+            var exists int
+            if err := db.QueryRow("SELECT 1 FROM categories WHERE id=$1", *req.CategoryID).Scan(&exists); err != nil {
+                http.Error(w, "Категория не найдена", http.StatusBadRequest)
+                return
+            }
+        }
+    }
+
+    // Build dynamic update
+    sets := []string{}
+    args := []any{}
+    if req.CategoryID != nil {
+        if *req.CategoryID == 0 {
+            sets = append(sets, "category_id=NULL")
+        } else {
+            sets = append(sets, "category_id=$"+strconv.Itoa(len(args)+1))
+            args = append(args, *req.CategoryID)
+        }
+    }
+    if req.Tags != nil {
+        sets = append(sets, "tags=$"+strconv.Itoa(len(args)+1))
+        args = append(args, strings.TrimSpace(*req.Tags))
+    }
+    if req.Description != nil {
+        sets = append(sets, "description=$"+strconv.Itoa(len(args)+1))
+        args = append(args, *req.Description)
+    }
+    if len(sets) == 0 {
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(map[string]any{"message": "Нет изменений"})
+        return
+    }
+    args = append(args, id)
+    query := "UPDATE videos SET " + strings.Join(sets, ",") + " WHERE id=$" + strconv.Itoa(len(args))
+    if _, err := db.Exec(query, args...); err != nil {
+        http.Error(w, "Ошибка БД", http.StatusInternalServerError)
+        return
+    }
+
+    // Return updated brief info
+    var v Video
+    var catID sql.NullInt32
+    if err := db.QueryRow(`SELECT v.id, v.title, v.description, v.tags, v.product_links, v.thumbnail_path, v.video_path,
+                v.created_at, v.user_id, COALESCE(u.name,''),
+                v.category_id, COALESCE(c.name,''),
+                (SELECT COUNT(*) FROM likes l WHERE l.video_id = v.id)            AS likes,
+                (SELECT COUNT(*) FROM dislikes d WHERE d.video_id = v.id)         AS dislikes,
+                (SELECT COUNT(*) FROM comments m WHERE m.video_id = v.id)         AS comments,
+                COALESCE((SELECT AVG(value) FROM ratings r WHERE r.video_id = v.id),0) AS avg_rating,
+                v.is_approved,
+                (v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') AS has_720,
+                (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') AS has_480,
+                v.views_count
+         FROM videos v
+         JOIN users u ON u.id = v.user_id
+         LEFT JOIN categories c ON c.id = v.category_id
+         WHERE v.id = $1`, id).Scan(&v.ID, &v.Title, &v.Description, &v.Tags, &v.ProductLinks, &v.Thumbnail, &v.VideoPath,
+        &v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.LikesCount, &v.DislikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480, &v.ViewsCount); err != nil {
+        http.Error(w, "Ошибка обновления", http.StatusInternalServerError)
+        return
+    }
+    if catID.Valid { v.CategoryID = int(catID.Int32) }
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(v)
+}
+
 func LikeVideoHandler(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 	uid := r.Context().Value(ctxKeyUserID).(int)

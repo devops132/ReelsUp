@@ -16,6 +16,11 @@ export default function VideoPage() {
   const [editText, setEditText] = useState('');
   const [err, setErr] = useState('');
   const [recs, setRecs] = useState([]);
+  const [editMode, setEditMode] = useState(false);
+  const [editCategory, setEditCategory] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [editTags, setEditTags] = useState('');
+  const [editDesc, setEditDesc] = useState('');
 
   const load = async () => {
     try {
@@ -32,6 +37,7 @@ export default function VideoPage() {
   };
 
   useEffect(() => { load(); }, [id]);
+  useEffect(() => { fetch('/api/categories').then(r=>r.json()).then(setCategories).catch(()=>{}); }, []);
 
   const addComment = async (e) => {
     e.preventDefault();
@@ -96,7 +102,52 @@ export default function VideoPage() {
     <div style={{ maxWidth: 1000, margin: '20px auto' }}>
       <h2>{video.title}</h2>
       <VideoPlayer video={video} onLikeToggle={onLikeToggle} onRated={onRated} commentsUI={commentsUI} />
-      <p>{video.description}</p>
+      {!editMode ? (
+        <>
+          <p>{video.description}</p>
+          {(user && (user.id === video.user_id || user.role === 'admin')) && (
+            <button onClick={() => { setEditMode(true); setEditCategory(String(video.category_id||'')); setEditTags(video.tags||''); setEditDesc(video.description||''); }}>
+              Редактировать метаданные
+            </button>
+          )}
+        </>
+      ) : (
+        <div style={{ border:'1px solid #ddd', padding:10, borderRadius:8 }}>
+          <h3>Редактирование метаданных</h3>
+          <label>Категория
+            <select value={editCategory} onChange={e=>setEditCategory(e.target.value)} style={{ marginLeft: 6 }}>
+              <option value="">-- Без категории --</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </label>
+          <br/>
+          <label>Теги
+            <input value={editTags} onChange={e=>setEditTags(e.target.value)} placeholder="tag1, tag2" style={{ marginLeft: 6, width:'60%' }} />
+          </label>
+          <br/>
+          <label>Описание
+            <textarea value={editDesc} onChange={e=>setEditDesc(e.target.value)} rows="3" style={{ display:'block', width:'80%' }} />
+          </label>
+          <div style={{ marginTop: 8 }}>
+            <button onClick={async ()=>{
+              const body = {
+                category_id: editCategory ? Number(editCategory) : 0,
+                tags: editTags,
+                description: editDesc
+              };
+              const res = await fetch(`/api/videos/${id}`, { method:'PUT', headers:{ 'Content-Type':'application/json', ...(localStorage.getItem('authToken') ? { 'Authorization':'Bearer '+localStorage.getItem('authToken') } : {}) }, body: JSON.stringify(body) });
+              if (res.ok) {
+                const v = await res.json();
+                setVideo(v);
+                setEditMode(false);
+              } else {
+                alert('Не удалось сохранить');
+              }
+            }}>Сохранить</button>
+            <button onClick={()=>setEditMode(false)} style={{ marginLeft: 6 }}>Отмена</button>
+          </div>
+        </div>
+      )}
       {video.product_links && (
         <p><strong>Маркетплейс:</strong> <a href={video.product_links} target="_blank" rel="noreferrer">{video.product_links}</a></p>
       )}
