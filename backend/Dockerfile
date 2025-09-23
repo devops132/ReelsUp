@@ -1,5 +1,5 @@
 # --------- BUILD ---------
-FROM golang:1.21 AS builder
+FROM golang:1.25.1 AS builder
 WORKDIR /app
 
 # deps cache
