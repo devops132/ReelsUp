@@ -1,10 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { apiGet } from '../api';
 import VideoCard from '../components/VideoCard';
 import VideoSkeleton from '../components/VideoSkeleton';
 
 export default function Feed() {
+  const location = useLocation();
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
@@ -13,9 +15,12 @@ export default function Feed() {
   const [sort, setSort] = useState('new');
 
   useEffect(() => {
-    load();
+    const sp = new URLSearchParams(location.search);
+    const qq = sp.get('q') || '';
+    setQ(qq);
+    load(qq);
     fetch('/api/categories').then(r=>r.json()).then(setCategories).catch(()=>{});
-  }, []);
+  }, [location.search]);
 
   const load = (qq='', cc='', ss=sort) => {
     setLoading(true);

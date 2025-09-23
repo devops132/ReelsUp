@@ -92,16 +92,18 @@ export default function VideoPage() {
   if (err) return <p style={{ color:'red', textAlign:'center' }}>{err}</p>;
   if (!video) return <p style={{ textAlign:'center' }}>Загрузка...</p>;
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const commentsUI = (
-    <div style={{ background:'rgba(0,0,0,.35)', borderRadius:12, padding:8 }}>
-      <button title="Комментарии">{`💬 ${comments.length}`}</button>
+    <div style={{ background:'transparent', borderRadius:12 }}>
+      <button title="Комментарии" onClick={()=>setDrawerOpen(true)}>{`💬 ${comments.length}`}</button>
     </div>
   );
 
   return (
-    <div style={{ maxWidth: 1000, margin: '20px auto' }}>
-      <h2>{video.title}</h2>
-      <VideoPlayer video={video} onLikeToggle={onLikeToggle} onRated={onRated} commentsUI={commentsUI} />
+    <div style={{ maxWidth: 1200, margin: '20px auto', position:'relative', display:'grid', gridTemplateColumns:'1fr 360px', gap:24 }}>
+      <div>
+        <h2>{video.title}</h2>
+        <VideoPlayer video={video} onLikeToggle={onLikeToggle} onRated={onRated} commentsUI={commentsUI} />
       {!editMode ? (
         <>
           <p>{video.description}</p>
@@ -153,12 +155,35 @@ export default function VideoPage() {
       )}
       {video.tags && <p><strong>Теги:</strong> {video.tags}</p>}
 
-      {/* Recommendations */}
-      {recs.length > 0 && (
-        <div style={{ marginTop: 20 }}>
-          <h3>Рекомендованные</h3>
-          <div style={{ maxHeight: 600, overflowY: 'auto', border: '1px solid #eee', borderRadius: 8, padding: 10 }}>
-            {recs.map(r => <VideoCard key={r.id} video={r} />)}
+      </div>
+      {/* Recommendations sticky */}
+      <div style={{ position:'sticky', top:72, alignSelf:'start' }}>
+        {recs.length > 0 && (
+          <div>
+            <h3>Рекомендованные</h3>
+            <div style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', border: '1px solid #eee', borderRadius: 8, padding: 10 }}>
+              {recs.map(r => <VideoCard key={r.id} video={r} />)}
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Comments drawer (mobile-first) */}
+      {drawerOpen && (
+        <div style={{ position:'fixed', left:0, right:0, bottom:0, top:'30%', background:'rgba(0,0,0,.6)', zIndex:50 }} onClick={()=>setDrawerOpen(false)}>
+          <div style={{ position:'absolute', left:0, right:0, bottom:0, background:'var(--surface-1)', borderTopLeftRadius:16, borderTopRightRadius:16, maxHeight:'70%', overflowY:'auto', padding:16 }} onClick={(e)=>e.stopPropagation()}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <h3>Комментарии ({comments.length})</h3>
+              <button onClick={()=>setDrawerOpen(false)}>Закрыть</button>
+            </div>
+            <div>
+              {comments.map(c => (
+                <div key={c.id} className="comment">
+                  <div><span className="comment-author">{c.user.name}</span>: <span>{c.text}</span></div>
+                  <div style={{ fontSize: '.8em', color: '#8899aa' }}>{new Date(c.created_at).toLocaleString()}</div>
+                </div>
+              ))}
+              {comments.length === 0 && <p>Комментариев пока нет.</p>}
+            </div>
           </div>
         </div>
       )}

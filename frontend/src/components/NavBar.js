@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function NavBar({ darkMode, toggleTheme }) {
   const { user, logout } = useAuth();
   const nav = useNavigate();
+  const [q, setQ] = useState('');
   return (
     <div className="navbar">
       <div className="brand">
@@ -14,6 +15,10 @@ export default function NavBar({ darkMode, toggleTheme }) {
           <span className="brand-text">ReelsUp</span>
         </Link>
       </div>
+      <form onSubmit={(e)=>{e.preventDefault(); nav(`/?q=${encodeURIComponent(q)}`);}} style={{ flex:1, maxWidth:600, margin:'0 12px', display:'flex' }}>
+        <input placeholder="Поиск..." value={q} onChange={e=>setQ(e.target.value)} style={{ flex:1 }} />
+        <button type="submit" style={{ marginLeft:6 }}>Найти</button>
+      </form>
       <div className="links">
         <button onClick={toggleTheme} title="Переключить тему">{darkMode ? '☀️' : '🌙'}</button>
         {user ? (<>

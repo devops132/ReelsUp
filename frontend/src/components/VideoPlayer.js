@@ -51,11 +51,13 @@ export default function VideoPlayer({ video, onLikeToggle, onRated, commentsUI }
     <div style={{ position:'relative', maxWidth: '900px', margin: '0 auto' }}>
       <VideoJSPlayer video={video} quality={quality} onQualityChange={setQuality} />
 
-      {/* Overlay controls */}
+      {/* Floating action pills */}
       <div style={{ position:'absolute', top:10, right:10, display:'flex', gap:8, alignItems:'center' }}>
-        <button onClick={toggleLike} title="Нравится" style={{ padding:'4px 8px' }}>{video.liked_by_user ? '👍' : '👍'} {video.likes_count}</button>
-        <button onClick={toggleDislike} title="Не нравится" style={{ padding:'4px 8px' }}>{video.disliked_by_user ? '👎' : '👎'} {video.dislikes_count || 0}</button>
-        {commentsUI}
+        <div style={{ display:'flex', gap:8, background:'rgba(0,0,0,.35)', padding:'6px 8px', borderRadius:9999 }}>
+          <button onClick={toggleLike} title="Нравится" style={{ padding:'4px 8px', borderRadius:9999, background:'transparent', color:'#fff' }}>👍 {video.likes_count}</button>
+          <button onClick={toggleDislike} title="Не нравится" style={{ padding:'4px 8px', borderRadius:9999, background:'transparent', color:'#fff' }}>👎 {video.dislikes_count || 0}</button>
+          {commentsUI}
+        </div>
       </div>
 
       {/* Rating stars (1..7) */}
