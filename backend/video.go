@@ -33,27 +33,34 @@ type Video struct {
 	CategoryID    int       `json:"category_id,omitempty"`
 	CategoryName  string    `json:"category_name,omitempty"`
 	LikesCount    int       `json:"likes_count"`
+	DislikesCount int       `json:"dislikes_count"`
 	CommentsCount int       `json:"comments_count"`
 	IsApproved    bool      `json:"is_approved"`
 	LikedByUser   bool      `json:"liked_by_user"`
+	DislikedByUser bool     `json:"disliked_by_user"`
 	Has720        bool      `json:"has_720"`
 	Has480        bool      `json:"has_480"`
 	AvgRating     float64   `json:"avg_rating"`
 	MyRating      int       `json:"my_rating"`
+	ViewsCount    int       `json:"views_count"`
 }
 
 func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	cat := r.URL.Query().Get("category")
-	query := `SELECT v.id, v.title, v.description, v.tags, v.product_links, v.thumbnail_path, v.video_path,
+    sort := r.URL.Query().Get("sort")
+    exclude := r.URL.Query().Get("exclude")
+    query := `SELECT v.id, v.title, v.description, v.tags, v.product_links, v.thumbnail_path, v.video_path,
                      v.created_at, v.user_id, COALESCE(u.name,''),
                      v.category_id, COALESCE(c.name,''),
                      (SELECT COUNT(*) FROM likes l WHERE l.video_id = v.id)            AS likes,
+                     (SELECT COUNT(*) FROM dislikes d WHERE d.video_id = v.id)         AS dislikes,
                      (SELECT COUNT(*) FROM comments m WHERE m.video_id = v.id)         AS comments,
                      COALESCE((SELECT AVG(value) FROM ratings r WHERE r.video_id = v.id),0) AS avg_rating,
                      v.is_approved,
                      (v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') AS has_720,
-                     (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') AS has_480
+                     (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') AS has_480,
+                     v.views_count
               FROM videos v
               JOIN users u ON u.id = v.user_id
               LEFT JOIN categories c ON c.id = v.category_id
@@ -73,8 +80,18 @@ func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
 			query += " AND v.category_id=$" + strconv.Itoa(len(params)+1)
 			params = append(params, cid)
 		}
-	}
-	query += " ORDER BY v.created_at DESC"
+    }
+    if exclude != "" {
+        if exID, err := strconv.Atoi(exclude); err == nil {
+            query += " AND v.id<>$" + strconv.Itoa(len(params)+1)
+            params = append(params, exID)
+        }
+    }
+    if sort == "likes" {
+        query += " ORDER BY likes DESC, v.created_at DESC"
+    } else {
+        query += " ORDER BY v.created_at DESC"
+    }
 	rows, err := db.Query(query, params...)
 	if err != nil {
 		log.Printf("ListVideosHandler: query error: %v", err)
@@ -86,8 +103,8 @@ func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var v Video
 		var catID sql.NullInt32
-		if err := rows.Scan(&v.ID, &v.Title, &v.Description, &v.Tags, &v.ProductLinks, &v.Thumbnail, &v.VideoPath,
-			&v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.LikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480); err != nil {
+        if err := rows.Scan(&v.ID, &v.Title, &v.Description, &v.Tags, &v.ProductLinks, &v.Thumbnail, &v.VideoPath,
+            &v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.LikesCount, &v.DislikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480, &v.ViewsCount); err != nil {
 			log.Printf("ListVideosHandler: scan error: %v, video ID: %v", err, v.ID)
 			http.Error(w, "Ошибка данных", http.StatusInternalServerError)
 			return
@@ -108,20 +125,22 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 	var v Video
 	var catID sql.NullInt32
-	err := db.QueryRow(`SELECT v.id, v.title, v.description, v.tags, v.product_links, v.thumbnail_path, v.video_path,
+    err := db.QueryRow(`SELECT v.id, v.title, v.description, v.tags, v.product_links, v.thumbnail_path, v.video_path,
                 v.created_at, v.user_id, COALESCE(u.name,''),
                 v.category_id, COALESCE(c.name,''),
                 (SELECT COUNT(*) FROM likes l WHERE l.video_id = v.id)            AS likes,
+                (SELECT COUNT(*) FROM dislikes d WHERE d.video_id = v.id)         AS dislikes,
                 (SELECT COUNT(*) FROM comments m WHERE m.video_id = v.id)         AS comments,
                 COALESCE((SELECT AVG(value) FROM ratings r WHERE r.video_id = v.id),0) AS avg_rating,
                 v.is_approved,
                 (v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') AS has_720,
-                (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') AS has_480
+                (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') AS has_480,
+                v.views_count
          FROM videos v
          JOIN users u ON u.id = v.user_id
          LEFT JOIN categories c ON c.id = v.category_id
          WHERE v.id = $1`, id).Scan(&v.ID, &v.Title, &v.Description, &v.Tags, &v.ProductLinks, &v.Thumbnail, &v.VideoPath,
-		&v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.LikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480)
+		&v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.LikesCount, &v.DislikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480, &v.ViewsCount)
 	if err != nil {
 		http.Error(w, "Видео не найдено", http.StatusNotFound)
 		return
@@ -137,14 +156,19 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	liked := false
+    liked := false
+    disliked := false
 	if uid, ok := r.Context().Value(ctxKeyUserID).(int); ok {
 		var x int
 		if err := db.QueryRow("SELECT 1 FROM likes WHERE user_id=$1 AND video_id=$2", uid, v.ID).Scan(&x); err == nil {
 			liked = true
 		}
+        if err := db.QueryRow("SELECT 1 FROM dislikes WHERE user_id=$1 AND video_id=$2", uid, v.ID).Scan(&x); err == nil {
+            disliked = true
+        }
 	}
 	v.LikedByUser = liked
+    v.DislikedByUser = disliked
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(v)
 }
@@ -154,7 +178,7 @@ func VideoContentHandler(w http.ResponseWriter, r *http.Request) {
 	var orig, p720, p480 string
 	var approved bool
 	var owner int
-	if err := db.QueryRow("SELECT video_path, video_path_720, video_path_480, is_approved, user_id FROM videos WHERE id=$1", id).Scan(&orig, &p720, &p480, &approved, &owner); err != nil {
+    if err := db.QueryRow("SELECT video_path, video_path_720, video_path_480, is_approved, user_id FROM videos WHERE id=$1", id).Scan(&orig, &p720, &p480, &approved, &owner); err != nil {
 		http.Error(w, "Видео не найдено", http.StatusNotFound)
 		return
 	}
@@ -178,7 +202,12 @@ func VideoContentHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	bucket := os.Getenv("MINIO_BUCKET")
+    // Increment views count (once per request)
+    go func() {
+        _, _ = db.Exec("UPDATE videos SET views_count = views_count + 1 WHERE id=$1", id)
+    }()
+
+    bucket := os.Getenv("MINIO_BUCKET")
 	if bucket == "" {
 		bucket = "videos"
 	}
@@ -304,11 +333,8 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 	tags := r.FormValue("tags")
 	productLinks := r.FormValue("productLinks")
 	catStr := r.FormValue("category")
-	uid := r.Context().Value(ctxKeyUserID).(int)
-	role := r.Context().Value(ctxKeyUserRole).(string)
-	if role != "business" {
-		productLinks = ""
-	}
+    uid := r.Context().Value(ctxKeyUserID).(int)
+    role := r.Context().Value(ctxKeyUserRole).(string)
 	isApproved := role == "admin"
 
 	objectName := fmt.Sprintf("%d_%d_%s", uid, time.Now().Unix(), hdr.Filename)
@@ -395,14 +421,17 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request) {
 func LikeVideoHandler(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 	uid := r.Context().Value(ctxKeyUserID).(int)
-	if _, err := db.Exec("INSERT INTO likes (user_id, video_id) VALUES ($1,$2) ON CONFLICT DO NOTHING", uid, id); err != nil {
+    _, _ = db.Exec("DELETE FROM dislikes WHERE user_id=$1 AND video_id=$2", uid, id)
+    if _, err := db.Exec("INSERT INTO likes (user_id, video_id) VALUES ($1,$2) ON CONFLICT DO NOTHING", uid, id); err != nil {
 		http.Error(w, "Ошибка БД", http.StatusInternalServerError)
 		return
 	}
-	var c int
-	_ = db.QueryRow("SELECT COUNT(*) FROM likes WHERE video_id=$1", id).Scan(&c)
+    var c int
+    _ = db.QueryRow("SELECT COUNT(*) FROM likes WHERE video_id=$1", id).Scan(&c)
+    var d int
+    _ = db.QueryRow("SELECT COUNT(*) FROM dislikes WHERE video_id=$1", id).Scan(&d)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"video_id": id, "likes_count": c, "liked": true})
+    json.NewEncoder(w).Encode(map[string]any{"video_id": id, "likes_count": c, "dislikes_count": d, "liked": true, "disliked": false})
 }
 
 func UnlikeVideoHandler(w http.ResponseWriter, r *http.Request) {
@@ -412,20 +441,55 @@ func UnlikeVideoHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Ошибка БД", http.StatusInternalServerError)
 		return
 	}
-	var c int
-	_ = db.QueryRow("SELECT COUNT(*) FROM likes WHERE video_id=$1", id).Scan(&c)
+    var c int
+    _ = db.QueryRow("SELECT COUNT(*) FROM likes WHERE video_id=$1", id).Scan(&c)
+    var d int
+    _ = db.QueryRow("SELECT COUNT(*) FROM dislikes WHERE video_id=$1", id).Scan(&d)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"video_id": id, "likes_count": c, "liked": false})
+    json.NewEncoder(w).Encode(map[string]any{"video_id": id, "likes_count": c, "dislikes_count": d, "liked": false, "disliked": false})
+}
+
+func DislikeVideoHandler(w http.ResponseWriter, r *http.Request) {
+    id, _ := strconv.Atoi(mux.Vars(r)["id"])
+    uid := r.Context().Value(ctxKeyUserID).(int)
+    _, _ = db.Exec("DELETE FROM likes WHERE user_id=$1 AND video_id=$2", uid, id)
+    if _, err := db.Exec("INSERT INTO dislikes (user_id, video_id) VALUES ($1,$2) ON CONFLICT DO NOTHING", uid, id); err != nil {
+        http.Error(w, "Ошибка БД", http.StatusInternalServerError)
+        return
+    }
+    var c int
+    _ = db.QueryRow("SELECT COUNT(*) FROM likes WHERE video_id=$1", id).Scan(&c)
+    var d int
+    _ = db.QueryRow("SELECT COUNT(*) FROM dislikes WHERE video_id=$1", id).Scan(&d)
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]any{"video_id": id, "likes_count": c, "dislikes_count": d, "liked": false, "disliked": true})
+}
+
+func UndislikeVideoHandler(w http.ResponseWriter, r *http.Request) {
+    id, _ := strconv.Atoi(mux.Vars(r)["id"])
+    uid := r.Context().Value(ctxKeyUserID).(int)
+    if _, err := db.Exec("DELETE FROM dislikes WHERE user_id=$1 AND video_id=$2", uid, id); err != nil {
+        http.Error(w, "Ошибка БД", http.StatusInternalServerError)
+        return
+    }
+    var c int
+    _ = db.QueryRow("SELECT COUNT(*) FROM likes WHERE video_id=$1", id).Scan(&c)
+    var d int
+    _ = db.QueryRow("SELECT COUNT(*) FROM dislikes WHERE video_id=$1", id).Scan(&d)
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]any{"video_id": id, "likes_count": c, "dislikes_count": d, "liked": false, "disliked": false})
 }
 
 func ListMyVideosHandler(w http.ResponseWriter, r *http.Request) {
 	uid := r.Context().Value(ctxKeyUserID).(int)
-	rows, err := db.Query(`SELECT v.id, v.title, v.description, v.tags, v.product_links, v.thumbnail_path, v.video_path,
+    rows, err := db.Query(`SELECT v.id, v.title, v.description, v.tags, v.product_links, v.thumbnail_path, v.video_path,
                 v.created_at, v.user_id, COALESCE(u.name,''),
                 v.category_id, COALESCE(c.name,''),
                 (SELECT COUNT(*) FROM likes l WHERE l.video_id=v.id) as likes,
+                (SELECT COUNT(*) FROM dislikes d WHERE d.video_id=v.id) as dislikes,
                 (SELECT COUNT(*) FROM comments m WHERE m.video_id=v.id) as comments,
-                v.is_approved, (v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') as has_720, (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') as has_480
+                v.is_approved, (v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') as has_720, (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') as has_480,
+                v.views_count
          FROM videos v JOIN users u ON u.id=v.user_id
          LEFT JOIN categories c ON c.id=v.category_id
          WHERE v.user_id=$1 ORDER BY v.created_at DESC`, uid)
@@ -438,8 +502,8 @@ func ListMyVideosHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var v Video
 		var catID sql.NullInt32
-		if err := rows.Scan(&v.ID, &v.Title, &v.Description, &v.Tags, &v.ProductLinks, &v.Thumbnail, &v.VideoPath,
-			&v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.LikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480); err != nil {
+        if err := rows.Scan(&v.ID, &v.Title, &v.Description, &v.Tags, &v.ProductLinks, &v.Thumbnail, &v.VideoPath,
+            &v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.LikesCount, &v.DislikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480, &v.ViewsCount); err != nil {
 			http.Error(w, "Ошибка данных", http.StatusInternalServerError)
 			return
 		}

@@ -10,18 +10,20 @@ export default function Feed() {
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [categories, setCategories] = useState([]);
+  const [sort, setSort] = useState('new');
 
   useEffect(() => {
     load();
     fetch('/api/categories').then(r=>r.json()).then(setCategories).catch(()=>{});
   }, []);
 
-  const load = (qq='', cc='') => {
+  const load = (qq='', cc='', ss=sort) => {
     setLoading(true);
     let url = '/api/videos';
     const params = [];
     if (qq) params.push('q='+encodeURIComponent(qq));
     if (cc) params.push('category='+cc);
+    if (ss === 'likes') params.push('sort=likes');
     if (params.length) url += '?' + params.join('&');
     apiGet(url)
       .then(data => { setVideos(data); setLoading(false); })
@@ -38,6 +40,10 @@ export default function Feed() {
         <select value={category} onChange={e=>setCategory(e.target.value)} style={{ marginLeft: 6 }}>
           <option value="">Все категории</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <select value={sort} onChange={e=>{ setSort(e.target.value); load(q, category, e.target.value); }} style={{ marginLeft: 6 }}>
+          <option value="new">Новые</option>
+          <option value="likes">По лайкам</option>
         </select>
         <button style={{ marginLeft: 6 }}>Найти</button>
       </form>

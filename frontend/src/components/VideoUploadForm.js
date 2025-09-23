@@ -51,7 +51,7 @@ export default function VideoUploadForm() {
       <label>Заголовок<input value={title} onChange={e=>setTitle(e.target.value)} required /></label>
       <label>Описание<textarea value={description} onChange={e=>setDescription(e.target.value)} rows="3" /></label>
       <label>Теги<input value={tags} onChange={e=>setTags(e.target.value)} placeholder="tag1, tag2" /></label>
-      {user.role === 'business' && <label>Ссылки на товар<input value={productLinks} onChange={e=>setProductLinks(e.target.value)} placeholder="https://..." /></label>}
+      <label>Ссылка на маркетплейс<input value={productLinks} onChange={e=>setProductLinks(e.target.value)} placeholder="https://..." /></label>
       <label>Категория<select value={category} onChange={e=>setCategory(e.target.value)}>
         <option value="">-- Не выбрана --</option>
         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

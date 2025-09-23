@@ -17,12 +17,14 @@ func AdminListVideosHandler(w http.ResponseWriter, r *http.Request) {
 			v.id, v.title, v.description, v.tags, v.product_links, v.thumbnail_path, v.video_path,
 			v.created_at, v.user_id, COALESCE(u.name,''),
 			v.category_id, COALESCE(c.name,''),
-			(SELECT COUNT(*) FROM likes l WHERE l.video_id = v.id)            AS likes_count,
+            (SELECT COUNT(*) FROM likes l WHERE l.video_id = v.id)            AS likes_count,
+            (SELECT COUNT(*) FROM dislikes d WHERE d.video_id = v.id)         AS dislikes_count,
 			(SELECT COUNT(*) FROM comments m WHERE m.video_id = v.id)         AS comments_count,
 			COALESCE((SELECT AVG(value) FROM ratings r WHERE r.video_id = v.id),0) AS avg_rating,
 			v.is_approved,
 			(v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') AS has_720,
-			(v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') AS has_480
+            (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') AS has_480,
+            v.views_count
                 FROM videos v
                 JOIN users u ON u.id = v.user_id
                 LEFT JOIN categories c ON c.id = v.category_id
@@ -39,13 +41,14 @@ func AdminListVideosHandler(w http.ResponseWriter, r *http.Request) {
 		var v Video
 		var categoryName string
 		var categoryId sql.NullInt32
-		if err := rows.Scan(
+        if err := rows.Scan(
 			&v.ID, &v.Title, &v.Description, &v.Tags, &v.ProductLinks, &v.Thumbnail, &v.VideoPath,
 			&v.CreatedAt, &v.UserID, &v.UserName,
-			&categoryId, &categoryName,
-			&v.LikesCount, &v.CommentsCount,
-			&v.AvgRating,
-			&v.IsApproved, &v.Has720, &v.Has480,
+            &categoryId, &categoryName,
+            &v.LikesCount, &v.DislikesCount, &v.CommentsCount,
+            &v.AvgRating,
+            &v.IsApproved, &v.Has720, &v.Has480,
+            &v.ViewsCount,
 		); err != nil {
 			http.Error(w, "Ошибка данных", http.StatusInternalServerError)
 			return

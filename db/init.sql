@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS videos (
     video_path_720 TEXT,
     video_path_480 TEXT,
     is_approved BOOLEAN NOT NULL DEFAULT FALSE,
+    views_count INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -50,6 +51,13 @@ CREATE TABLE IF NOT EXISTS comments (
 );
 
 CREATE TABLE IF NOT EXISTS likes (
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    video_id INT NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, video_id)
+);
+
+-- dislikes similar to likes
+CREATE TABLE IF NOT EXISTS dislikes (
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     video_id INT NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, video_id)

@@ -34,14 +34,27 @@ export default function VideoPlayer({ video, onLikeToggle, onRated, commentsUI }
       }
     } catch (e) { console.error(e); }
   };
+  const toggleDislike = async () => {
+    if (!user) { alert('Войдите, чтобы дизлайкать'); return; }
+    try {
+      if (!video.disliked_by_user) {
+        const res = await apiPost(`/api/videos/${video.id}/dislike`, {});
+        onLikeToggle && onLikeToggle(res);
+      } else {
+        const res = await apiDelete(`/api/videos/${video.id}/dislike`);
+        onLikeToggle && onLikeToggle(res);
+      }
+    } catch (e) { console.error(e); }
+  };
 
   return (
     <div style={{ position:'relative', maxWidth: '900px', margin: '0 auto' }}>
       <VideoJSPlayer video={video} quality={quality} onQualityChange={setQuality} />
 
       {/* Overlay controls */}
-      <div style={{ position:'absolute', top:10, right:10, display:'flex', gap:8 }}>
-        <button onClick={toggleLike}>{video.liked_by_user ? '♥' : '♡'} {video.likes_count}</button>
+      <div style={{ position:'absolute', top:10, right:10, display:'flex', gap:8, alignItems:'center' }}>
+        <button onClick={toggleLike} title="Нравится" style={{ padding:'4px 8px' }}>{video.liked_by_user ? '👍' : '👍'} {video.likes_count}</button>
+        <button onClick={toggleDislike} title="Не нравится" style={{ padding:'4px 8px' }}>{video.disliked_by_user ? '👎' : '👎'} {video.dislikes_count || 0}</button>
         {commentsUI}
       </div>
 

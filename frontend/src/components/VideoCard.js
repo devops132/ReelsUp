@@ -24,7 +24,7 @@ export default function VideoCard({ video }) {
           {video.category_name && <span className="badge">{video.category_name}</span>}
         </small><br/>
         <small>
-          Лайков: {video.likes_count} | Комментариев: {video.comments_count}
+          👍 {video.likes_count} · 👎 {video.dislikes_count || 0} · 👁️ {video.views_count || 0} · 💬 {video.comments_count}
           {!video.is_approved && <span className="badge" style={{background:'orange'}}>Модерация</span>}
         </small>
       </div>

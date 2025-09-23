@@ -210,6 +210,8 @@ log.Println("seedAdmin: env check -> ADMIN_EMAIL=", adminEmailLog, " ADMIN_PASSW
 	authR.HandleFunc("/videos/{id:[0-9]+}/rating", UnrateVideoHandler).Methods("DELETE")
     authR.HandleFunc("/videos/{id:[0-9]+}/like", LikeVideoHandler).Methods("POST")
     authR.HandleFunc("/videos/{id:[0-9]+}/like", UnlikeVideoHandler).Methods("DELETE")
+    authR.HandleFunc("/videos/{id:[0-9]+}/dislike", DislikeVideoHandler).Methods("POST")
+    authR.HandleFunc("/videos/{id:[0-9]+}/dislike", UndislikeVideoHandler).Methods("DELETE")
     authR.HandleFunc("/user/videos", ListMyVideosHandler).Methods("GET")
 
     admin := api.PathPrefix("/admin").Subrouter()
