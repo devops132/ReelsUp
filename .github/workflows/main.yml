@@ -28,7 +28,11 @@ jobs:
             docker-compose down --remove-orphans
             # If DOMAIN is set, issue/renew Let's Encrypt certs (first run and renew)
             if [ -n "${DOMAIN}" ]; then
-              docker-compose run --rm certbot certonly --webroot -w /var/www/certbot \
+              mkdir -p ${DEPLOY_PATH}/certbot/www ${DEPLOY_PATH}/certbot/etc
+              docker-compose run --rm \
+                -v ${DEPLOY_PATH}/certbot/www:/var/www/certbot \
+                -v ${DEPLOY_PATH}/certbot/etc:/etc/letsencrypt \
+                certbot certonly --webroot -w /var/www/certbot \
                 --email ${LE_EMAIL} --agree-tos --no-eff-email --cert-name default -d ${DOMAIN}
             fi
             docker-compose up -d --build
