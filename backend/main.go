@@ -219,6 +219,9 @@ log.Println("seedAdmin: env check -> ADMIN_EMAIL=", adminEmailLog, " ADMIN_PASSW
     admin.HandleFunc("/videos/{id:[0-9]+}", AdminDeleteVideoHandler).Methods("DELETE")
     admin.HandleFunc("/users", AdminListUsersHandler).Methods("GET")
     admin.HandleFunc("/users/{id:[0-9]+}/role", AdminUpdateUserRoleHandler).Methods("PUT")
+    // categories
+    admin.HandleFunc("/categories", AdminListCategoriesHandler).Methods("GET")
+    admin.HandleFunc("/categories", AdminCreateCategoryHandler).Methods("POST")
 
     addr := ":8080"
     log.Println("HTTP server on", addr)

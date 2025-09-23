@@ -12,6 +12,12 @@ CREATE TABLE IF NOT EXISTS categories (
     name TEXT UNIQUE NOT NULL
 );
 
+-- hierarchical categories support
+ALTER TABLE IF EXISTS categories
+    ADD COLUMN IF NOT EXISTS parent_id INT REFERENCES categories(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON categories(parent_id);
+
 CREATE TABLE IF NOT EXISTS videos (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
