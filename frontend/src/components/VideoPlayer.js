@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiPost, apiDelete } from '../api';
 import VideoJSPlayer from './VideoJSPlayer';
+import { IconLike, IconDislike, IconComment, IconShare } from './Icons';
 
 export default function VideoPlayer({ video, onLikeToggle, onRated, commentsUI }) {
   const { user } = useAuth();
@@ -54,8 +55,21 @@ export default function VideoPlayer({ video, onLikeToggle, onRated, commentsUI }
       {/* Floating action pills */}
       <div style={{ position:'absolute', top:10, right:10, display:'flex', gap:8, alignItems:'center' }}>
         <div style={{ display:'flex', gap:8, background:'rgba(0,0,0,.35)', padding:'6px 8px', borderRadius:9999 }}>
-          <button onClick={toggleLike} title="Нравится" style={{ padding:'4px 8px', borderRadius:9999, background:'transparent', color:'#fff' }}>👍 {video.likes_count}</button>
-          <button onClick={toggleDislike} title="Не нравится" style={{ padding:'4px 8px', borderRadius:9999, background:'transparent', color:'#fff' }}>👎 {video.dislikes_count || 0}</button>
+          <button onClick={toggleLike} data-tooltip="Нравится" style={{ padding:'4px 8px', borderRadius:9999, background:'transparent', color:'#fff', display:'flex', alignItems:'center', gap:6 }}>
+            <IconLike color="#fff" /> {video.likes_count}
+          </button>
+          <button onClick={toggleDislike} data-tooltip="Не нравится" style={{ padding:'4px 8px', borderRadius:9999, background:'transparent', color:'#fff', display:'flex', alignItems:'center', gap:6 }}>
+            <IconDislike color="#fff" /> {video.dislikes_count || 0}
+          </button>
+          <button data-tooltip="Поделиться" onClick={async()=>{
+            try {
+              const shareData = { title: video.title, text: video.description || video.title, url: window.location.href };
+              if (navigator.share) await navigator.share(shareData);
+              else { await navigator.clipboard.writeText(shareData.url); alert('Ссылка скопирована'); }
+            } catch {}
+          }} title="Поделиться" style={{ padding:'4px 8px', borderRadius:9999, background:'transparent', color:'#fff', display:'flex', alignItems:'center', gap:6 }}>
+            <IconShare color="#fff" />
+          </button>
           {commentsUI}
         </div>
       </div>

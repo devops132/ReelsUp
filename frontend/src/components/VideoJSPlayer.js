@@ -9,6 +9,8 @@ import 'video.js/dist/video-js.css';
 export default function VideoJSPlayer({ video, quality, onQualityChange }) {
   const videoRef = useRef(null);
   const playerRef = useRef(null);
+  const containerRef = useRef(null);
+  const [mini, setMini] = React.useState(false);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -61,6 +63,16 @@ export default function VideoJSPlayer({ video, quality, onQualityChange }) {
     };
     }, [video.id]);
 
+  // Mini-player: stick to bottom-right when out of viewport
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      setMini(!entry.isIntersecting);
+    }, { threshold: 0.1 });
+    const node = containerRef.current;
+    if (node) observer.observe(node);
+    return () => { if (node) observer.unobserve(node); };
+  }, []);
+
   useEffect(() => {
     // when parent quality changes, update src
     if (!playerRef.current) return;
@@ -74,8 +86,11 @@ export default function VideoJSPlayer({ video, quality, onQualityChange }) {
   }, [quality, video.id, video.has_720, video.has_480]);
 
   return (
-    <div data-vjs-player>
-      <video ref={videoRef} className="video-js vjs-default-skin" playsInline />
+    <div ref={containerRef} style={{ position:'relative' }}>
+      <div data-vjs-player style={ mini ? { position:'fixed', right:16, bottom:16, width:320, zIndex:40, boxShadow:'0 10px 28px rgba(0,0,0,.45)', borderRadius:8, overflow:'hidden', cursor:'pointer' } : {} }
+        onClick={() => { if (mini) window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+        <video ref={videoRef} className="video-js vjs-default-skin" playsInline />
+      </div>
     </div>
   );
 }

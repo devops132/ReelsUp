@@ -36,7 +36,7 @@
 html, body { margin: 0; padding: 0; font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
 .app-container { background: var(--bg-color); color: var(--text-color); min-height: 100vh; }
 a { color: var(--accent-color); text-decoration: none; }
-a:hover { text-decoration: underline; }
+a:hover { text-decoration: underline; filter: brightness(1.1); }
 .navbar {
   position: sticky; top: 0; z-index: 5;
   padding: 12px 16px;
@@ -98,6 +98,33 @@ button:hover { background: #243142; }
 button.primary { background: var(--accent-color); border-color: var(--accent-color); color: #fff; }
 button.primary:hover { filter: brightness(1.05); }
 .form { max-width: 520px; margin: 20px auto; display: grid; gap: 10px; }
+
+/* Focus ring for a11y */
+button:focus-visible, a:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(79,140,255,.35); border-color: var(--accent-color); border-radius: 10px; }
+
+/* Tooltips */
+[data-tooltip] { position: relative; }
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,.85);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(0,0,0,.35);
+  opacity: 0; pointer-events: none;
+  transition: opacity .12s ease, transform .12s ease;
+}
+[data-tooltip]:hover::after, [data-tooltip]:focus-visible::after { opacity: 1; transform: translateX(-50%) translateY(-2px); }
+
+/* Dropdown item hover animation */
+.dropdown-item { transition: background .15s ease, transform .12s ease; border-radius: 6px; }
+.dropdown-item:hover { background: rgba(255,255,255,0.06); transform: translateY(-1px); }
 .comment { border-bottom: 1px solid var(--border-color); padding: 8px 0; }
 .comment-author { font-weight: 600; }
 

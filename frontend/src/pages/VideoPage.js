@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../api';
+import { IconCopy } from '../components/Icons';
 import VideoPlayer from '../components/VideoPlayer';
 import VideoCard from '../components/VideoCard';
 
@@ -151,7 +152,7 @@ export default function VideoPage() {
         </div>
       )}
       {video.product_links && (
-        <p><strong>Маркетплейс:</strong> <a href={video.product_links} target="_blank" rel="noreferrer">{video.product_links}</a></p>
+        <p><strong>Маркетплейс:</strong> <a href={video.product_links} target="_blank" rel="noreferrer">{video.product_links}</a> <button title="Копировать ссылку" onClick={async()=>{ try { await navigator.clipboard.writeText(video.product_links); } catch {} }} style={{ marginLeft:8, display:'inline-flex', alignItems:'center', gap:6, background:'var(--surface-2)' }}><IconCopy /></button></p>
       )}
       {video.tags && <p><strong>Теги:</strong> {video.tags}</p>}
 
