@@ -22,6 +22,7 @@ export default function VideoPage() {
   const [categories, setCategories] = useState([]);
   const [editTags, setEditTags] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const load = async () => {
     try {
@@ -92,8 +93,6 @@ export default function VideoPage() {
 
   if (err) return <p style={{ color:'red', textAlign:'center' }}>{err}</p>;
   if (!video) return <p style={{ textAlign:'center' }}>Загрузка...</p>;
-
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const commentsUI = (
     <div style={{ background:'transparent', borderRadius:12 }}>
       <button title="Комментарии" onClick={()=>setDrawerOpen(true)}>{`💬 ${comments.length}`}</button>
