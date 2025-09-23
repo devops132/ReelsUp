@@ -7,7 +7,8 @@ COPY package.json package-lock.json ./
 COPY patches ./patches
 
 # Deterministic install
-RUN npm ci --silent
+# Use npm install to allow lockfile re-generation after package.json updates
+RUN npm install --silent
 
 # Copy the rest of the app and ensure patches are applied (in case patches were updated)
 COPY . .
