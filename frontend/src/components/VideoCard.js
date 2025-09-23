@@ -22,8 +22,17 @@ export default function VideoCard({ video }) {
         <h3><Link to={`/video/${video.id}`}>{video.title}</Link></h3>
         <small>
           Автор: {video.user_name}
-          {video.category_name && <span className="badge">{video.category_name}</span>}
+          {video.category_name && (
+            <Link to={`/?category=${video.category_id}`} className="badge" data-tooltip="Фильтр по категории" style={{ marginLeft: 6 }}>{video.category_name}</Link>
+          )}
         </small><br/>
+        {video.tags && (
+          <div style={{ marginTop:6, display:'flex', flexWrap:'wrap', gap:6 }}>
+            {video.tags.split(/[,\s]+/).filter(Boolean).slice(0,6).map((t,i) => (
+              <Link key={i} to={`/?tag=${encodeURIComponent(t)}`} className="badge" data-tooltip={`Фильтр по тегу ${t}`}>{t.startsWith('#') ? t : ('#'+t)}</Link>
+            ))}
+          </div>
+        )}
         <small style={{ display:'flex', gap:10, alignItems:'center', color:'var(--text-muted)' }}>
           <span style={{ display:'inline-flex', alignItems:'center', gap:4 }} data-tooltip="Лайки"><IconLike /> {video.likes_count}</span>
           <span style={{ display:'inline-flex', alignItems:'center', gap:4 }} data-tooltip="Дизлайки"><IconDislike /> {video.dislikes_count || 0}</span>

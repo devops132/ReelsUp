@@ -17,8 +17,11 @@ export default function Feed() {
   useEffect(() => {
     const sp = new URLSearchParams(location.search);
     const qq = sp.get('q') || '';
-    setQ(qq);
-    load(qq);
+    const cc = sp.get('category') || '';
+    const tg = sp.get('tag') || '';
+    setQ(qq || tg);
+    setCategory(cc);
+    load(qq || tg, cc);
     fetch('/api/categories').then(r=>r.json()).then(setCategories).catch(()=>{});
   }, [location.search]);
 

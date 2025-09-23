@@ -50,7 +50,11 @@ export default function VideoUploadForm() {
       <label>Видео файл<input type="file" accept="video/*" onChange={e=>setFile(e.target.files[0])} required /></label>
       <label>Заголовок<input value={title} onChange={e=>setTitle(e.target.value)} required /></label>
       <label>Описание<textarea value={description} onChange={e=>setDescription(e.target.value)} rows="3" /></label>
-      <label>Теги<input value={tags} onChange={e=>setTags(e.target.value)} placeholder="tag1, tag2" /></label>
+      <label>Теги<input value={tags} onChange={e=>{
+        const raw = e.target.value;
+        const parts = raw.split(/[,\s]+/).filter(Boolean).map(t => t.startsWith('#') ? t : ('#'+t));
+        setTags(parts.join(', '));
+      }} placeholder="tag1, tag2" /></label>
       <label>Ссылка на маркетплейс<input value={productLinks} onChange={e=>setProductLinks(e.target.value)} placeholder="https://..." /></label>
       <label>Категория<select value={category} onChange={e=>setCategory(e.target.value)}>
         <option value="">-- Не выбрана --</option>
