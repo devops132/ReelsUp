@@ -1,7 +1,8 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { prepareCategoryOptions } from '../utils/categories';
 
 export default function VideoUploadForm() {
   const { user, token } = useAuth();
@@ -14,6 +15,8 @@ export default function VideoUploadForm() {
   const [category, setCategory] = useState('');
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
+
+  const preparedCategories = useMemo(() => prepareCategoryOptions(categories), [categories]);
 
   useEffect(() => {
     if (!user) { nav('/login'); return; }
@@ -58,7 +61,11 @@ export default function VideoUploadForm() {
       <label>Ссылка на маркетплейс<input value={productLinks} onChange={e=>setProductLinks(e.target.value)} placeholder="https://..." /></label>
       <label>Категория<select value={category} onChange={e=>setCategory(e.target.value)}>
         <option value="">-- Не выбрана --</option>
-        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        {preparedCategories.map(c => (
+          <option key={c.id} value={c.id} title={c.breadcrumb}>
+            {c.displayLabel}
+          </option>
+        ))}
       </select></label>
       <button type="submit">Загрузить</button>
     </form>

@@ -1,10 +1,11 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { apiGet } from '../api';
 import VideoCard from '../components/VideoCard';
 import VideoSkeleton from '../components/VideoSkeleton';
 import LiveStreamsBlock from '../components/LiveStreamsBlock';
+import { prepareCategoryOptions, buildCategoryMap } from '../utils/categories';
 
 export default function Feed() {
   const location = useLocation();
@@ -33,6 +34,9 @@ export default function Feed() {
     load({ q: (qq||tg), category: cc, categories: cats, tags });
     fetch('/api/categories').then(r=>r.json()).then(setCategories).catch(()=>{});
   }, [location.search]);
+
+  const preparedCategories = useMemo(() => prepareCategoryOptions(categories), [categories]);
+  const categoryMap = useMemo(() => buildCategoryMap(preparedCategories), [preparedCategories]);
 
   const load = ({ q:qq='', category:cc='', categories:catsArr=[], tags:tagsArr=[], sortBy=sort }={}) => {
     setLoading(true);
@@ -118,7 +122,11 @@ export default function Feed() {
         <input placeholder="Поиск..." value={q} onChange={e=>setQ(e.target.value)} />
         <select value={category} onChange={e=>{ const val = e.target.value; setCategory(val); if (val) addFilterCat(val); }}>
           <option value="">Все категории</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.parent_id ? `${c.name} (${(categories.find(x=>x.id===c.parent_id)?.name)||'—'})` : c.name}</option>)}
+          {preparedCategories.map(c => (
+            <option key={c.id} value={c.id} title={c.breadcrumb}>
+              {c.displayLabel}
+            </option>
+          ))}
         </select>
         <select value={sort} onChange={e=>{ const nextSort = e.target.value; setSort(nextSort); load({ q, category, categories:selectedCats, tags:selectedTags, sortBy: nextSort }); }}>
           <option value="new">Новые</option>
@@ -130,8 +138,8 @@ export default function Feed() {
         <div style={{ maxWidth: 1320, margin:'10px auto 0', padding:'0 16px' }}>
           <div style={{ display:'flex', alignItems:'center', flexWrap:'wrap', gap:8 }}>
             {selectedCats.map(id => {
-              const catObj = categories.find(c => String(c.id) === String(id));
-              const name = catObj ? catObj.name : `Категория ${id}`;
+              const catObj = categoryMap.get(String(id));
+              const name = catObj ? (catObj.breadcrumb || catObj.displayLabel || catObj.name) : `Категория ${id}`;
               return (
                 <button key={`c-${id}`} onClick={()=>removeFilterCat(id)} className="badge" style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
                   {name} <span style={{ opacity:.8 }}>✕</span>

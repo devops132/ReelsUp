@@ -1,11 +1,12 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { apiGet, apiPost, apiDelete } from '../api';
 import { IconCopy } from '../components/Icons';
 import VideoPlayer from '../components/VideoPlayer';
 import VideoCard from '../components/VideoCard';
+import { prepareCategoryOptions } from '../utils/categories';
 
 export default function VideoPage() {
   const { id } = useParams();
@@ -40,6 +41,8 @@ export default function VideoPage() {
 
   useEffect(() => { load(); }, [id]);
   useEffect(() => { fetch('/api/categories').then(r=>r.json()).then(setCategories).catch(()=>{}); }, []);
+
+  const preparedCategories = useMemo(() => prepareCategoryOptions(categories), [categories]);
 
   const addComment = async (e) => {
     e.preventDefault();
@@ -119,7 +122,11 @@ export default function VideoPage() {
           <label>Категория
             <select value={editCategory} onChange={e=>setEditCategory(e.target.value)} style={{ marginLeft: 6 }}>
               <option value="">-- Без категории --</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {preparedCategories.map(c => (
+                <option key={c.id} value={c.id} title={c.breadcrumb}>
+                  {c.displayLabel}
+                </option>
+              ))}
             </select>
           </label>
           <br/>

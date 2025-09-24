@@ -3,6 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import VideoCard from "../components/VideoCard";
 import { IconShield, IconUser, IconUpload, IconDots } from "../components/Icons";
+import { prepareCategoryOptions } from "../utils/categories";
 
 export default function AdminPanel() {
   const { user } = useAuth();
@@ -217,12 +218,12 @@ export default function AdminPanel() {
 
   const findCategoryByIdLocal = (id) => {
     // search in loaded buckets
-    for (const [k, arr] of Object.entries(treeChildren)) {
-      const hit = (arr||[]).find(x => String(x.id) === String(id));
-      if (hit) return hit;
+    for (const arr of Object.values(treeChildren)) {
+      const hit = (arr || []).find((x) => String(x.id) === String(id));
+      if (hit) return mergeWithMeta(hit);
     }
-    const hitFlat = (categoriesFlat||[]).find(x=> String(x.id) === String(id));
-    return hitFlat || null;
+    const hitFlat = (categoriesFlat || []).find((x) => String(x.id) === String(id));
+    return mergeWithMeta(hitFlat) || null;
   };
   const highlight = (name) => {
     const q = catSearch.trim().toLowerCase();
@@ -397,22 +398,55 @@ export default function AdminPanel() {
     </div>
   );
 
+  const categoriesPrepared = useMemo(() => prepareCategoryOptions(categoriesFlat), [categoriesFlat]);
   const catMap = useMemo(() => {
     const m = {};
-    (categoriesFlat || []).forEach(c => { m[String(c.id)] = c; });
+    (categoriesPrepared || []).forEach((c) => {
+      m[String(c.id)] = c;
+    });
     return m;
-  }, [categoriesFlat]);
-  const getBreadcrumb = (id) => {
-    const names = [];
-    let cur = catMap[String(id)];
-    const guard = new Set();
-    while (cur && !guard.has(String(cur.id))) {
-      guard.add(String(cur.id));
-      names.unshift(cur.name);
-      if (!cur.parent_id) break;
-      cur = catMap[String(cur.parent_id)];
+  }, [categoriesPrepared]);
+  const getBreadcrumb = (id) => catMap[String(id)]?.breadcrumb || '';
+  const labelForNode = (node) => {
+    if (!node) return '';
+    const meta = catMap[String(node.id)];
+    if (meta?.breadcrumb) return meta.breadcrumb;
+    if (meta?.name) return meta.name;
+    return node.name || '';
+  };
+  const highlightLabel = (label) => {
+    const q = catSearch.trim().toLowerCase();
+    if (!q) return label;
+    const lower = label.toLowerCase();
+    const idx = lower.indexOf(q);
+    if (idx === -1) return label;
+    return (
+      <span>
+        {label.slice(0, idx)}
+        <mark>{label.slice(idx, idx + q.length)}</mark>
+        {label.slice(idx + q.length)}
+      </span>
+    );
+  };
+  const depthForNode = (node) => {
+    if (!node) return 1;
+    const meta = catMap[String(node.id)];
+    if (meta && typeof meta.depth === 'number') return meta.depth;
+    if (node.parent_id != null) {
+      const parent = catMap[String(node.parent_id)];
+      if (parent && typeof parent.depth === 'number') return parent.depth + 1;
     }
-    return names.join(' › ');
+    return 1;
+  };
+  const matchesSearch = (node) => {
+    const q = catSearch.trim().toLowerCase();
+    if (!q) return true;
+    return labelForNode(node).toLowerCase().includes(q);
+  };
+  const mergeWithMeta = (node) => {
+    if (!node) return null;
+    const meta = catMap[String(node.id)];
+    return meta ? { ...node, ...meta } : node;
   };
 
   const renderCategories = () => (
@@ -428,35 +462,45 @@ export default function AdminPanel() {
               </div>
               {/* Root level */}
               <div onDragOver={(e)=>onDragOverZone(e,'end-root')} onDrop={()=>onDropAtEnd(null)} style={{ height:8, background: dragOverZone==='end-root' ? 'rgba(79,140,255,.2)' : 'transparent' }} />
-              {(treeChildren['root'] || []).filter(c => !catSearch || c.name.toLowerCase().includes(catSearch.trim().toLowerCase())).map((c) => (
-                <div key={c.id} draggable={!movingId} onDragStart={()=>!movingId&&onDragStartItem(c.id)} onDragOver={(e)=>onDragOverItem(e,c.id)} onDrop={()=>onDropItem(c.id, c.name)} style={{ padding: "6px 10px", borderBottom: "1px solid #f3f3f3", display: "flex", alignItems: "center", background: dragOverId===String(c.id)?'rgba(79,140,255,.12)':'transparent', opacity: movingId && movingId!==c.id ? .7 : 1 }}>
-                  <div onDragOver={(e)=>onDragOverZone(e,`before-${c.id}`)} onDrop={()=>onDropBefore(c.id, null)} style={{ width:6, height:24, marginRight:6, background: dragOverZone===`before-${c.id}` ? 'rgba(79,140,255,.4)':'transparent' }} />
-                  <button onClick={() => toggleExpand(c.id)} disabled={!!movingId} style={{ marginRight: 6, background: 'transparent', border:'none', cursor: movingId?'not-allowed':'pointer', opacity: movingId?.toString()? .6:1 }}>{expanded.has(String(c.id)) ? '▾' : '▸'}</button>
-                  <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
-                    {highlight(c.name)}
-                    {movingId===c.id && <span style={{ width:14, height:14, border:'2px solid #fff', borderTopColor:'transparent', borderRadius:'50%', display:'inline-block', animation:'spin 0.8s linear infinite' }} />}
-                  </span>
-                  <span style={{ marginLeft:'auto', color:'#999', fontSize:12 }}>{c.children_count > 0 ? `${c.children_count} подкат.` : 'лист'}</span>
-                  <button disabled={!!movingId} onClick={async()=>{ const n = prompt('Новое имя категории', c.name); if (!n) return; await fetch('/api/admin/categories/'+c.id, { method:'PUT', headers:{ 'Content-Type':'application/json', ...authHeader() }, body: JSON.stringify({ name:n }) }); setTreeChildren({}); setExpanded(new Set()); loadCategoryChildren(null); }} style={{ marginLeft:8, opacity: movingId?.toString()? .6:1 }}>✎</button>
-                  <button disabled={!!movingId} onClick={async()=>{ if (!(await confirmDelete(c.id, c.name))) return; await fetch('/api/admin/categories/'+c.id, { method:'DELETE', headers: authHeader() }); setTreeChildren({}); setExpanded(new Set()); loadCategoryChildren(null); }} style={{ marginLeft:6, background:'#e88', opacity: movingId?.toString()? .6:1 }}>✕</button>
-                </div>
-              ))}
+              {(treeChildren['root'] || []).filter((c) => matchesSearch(c)).map((c) => {
+                const depth = depthForNode(c);
+                const indent = Math.max(0, depth - 1) * 18;
+                const label = labelForNode(c);
+                return (
+                  <div key={c.id} draggable={!movingId} onDragStart={()=>!movingId&&onDragStartItem(c.id)} onDragOver={(e)=>onDragOverItem(e,c.id)} onDrop={()=>onDropItem(c.id, c.name)} style={{ padding: "6px 10px", paddingLeft: 12 + indent, borderBottom: "1px solid #f3f3f3", display: "flex", alignItems: "center", background: dragOverId===String(c.id)?'rgba(79,140,255,.12)':'transparent', opacity: movingId && movingId!==c.id ? .7 : 1 }} title={label}>
+                    <div onDragOver={(e)=>onDragOverZone(e,`before-${c.id}`)} onDrop={()=>onDropBefore(c.id, null)} style={{ width:6, height:24, marginRight:6, background: dragOverZone===`before-${c.id}` ? 'rgba(79,140,255,.4)':'transparent' }} />
+                    <button onClick={() => toggleExpand(c.id)} disabled={!!movingId} style={{ marginRight: 6, background: 'transparent', border:'none', cursor: movingId?'not-allowed':'pointer', opacity: movingId?.toString()? .6:1 }}>{expanded.has(String(c.id)) ? '▾' : '▸'}</button>
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
+                      {highlightLabel(label)}
+                      {movingId===c.id && <span style={{ width:14, height:14, border:'2px solid #fff', borderTopColor:'transparent', borderRadius:'50%', display:'inline-block', animation:'spin 0.8s linear infinite' }} />}
+                    </span>
+                    <span style={{ marginLeft:'auto', color:'#999', fontSize:12 }}>{c.children_count > 0 ? `${c.children_count} подкат.` : 'лист'}</span>
+                    <button disabled={!!movingId} onClick={async()=>{ const n = prompt('Новое имя категории', c.name); if (!n) return; await fetch('/api/admin/categories/'+c.id, { method:'PUT', headers:{ 'Content-Type':'application/json', ...authHeader() }, body: JSON.stringify({ name:n }) }); setTreeChildren({}); setExpanded(new Set()); loadCategoryChildren(null); }} style={{ marginLeft:8, opacity: movingId?.toString()? .6:1 }}>✎</button>
+                    <button disabled={!!movingId} onClick={async()=>{ if (!(await confirmDelete(c.id, c.name))) return; await fetch('/api/admin/categories/'+c.id, { method:'DELETE', headers: authHeader() }); setTreeChildren({}); setExpanded(new Set()); loadCategoryChildren(null); }} style={{ marginLeft:6, background:'#e88', opacity: movingId?.toString()? .6:1 }}>✕</button>
+                  </div>
+                );
+              })}
               <div onDragOver={(e)=>onDragOverZone(e,'end-root')} onDrop={()=>onDropAtEnd(null)} style={{ height:10, background: dragOverZone==='end-root' ? 'rgba(79,140,255,.2)' : 'transparent' }} />
               {/* Expanded children */}
               {Object.entries(treeChildren).filter(([k])=>k!=='root').map(([pid, arr]) => (
-                expanded.has(pid) ? arr.map(child => (
-                  <div key={child.id} draggable={!movingId} onDragStart={()=>!movingId&&onDragStartItem(child.id)} onDragOver={(e)=>onDragOverItem(e,child.id)} onDrop={()=>onDropItem(child.id, child.name)} style={{ padding: "6px 10px", paddingLeft: 24, borderBottom: "1px solid " + (dragOverZone===`end-${pid}`?'rgba(79,140,255,.2)':'#f3f3f3'), display: "flex", alignItems: "center", background: dragOverId===String(child.id)?'rgba(79,140,255,.12)':'transparent', opacity: movingId && movingId!==child.id ? .7 : 1 }}>
-                    <div onDragOver={(e)=>onDragOverZone(e,`before-${child.id}`)} onDrop={()=>onDropBefore(child.id, pid)} style={{ width:6, height:24, marginRight:6, background: dragOverZone===`before-${child.id}` ? 'rgba(79,140,255,.4)':'transparent' }} />
-                    <button onClick={() => toggleExpand(child.id)} disabled={!!movingId} style={{ marginRight: 6, background: 'transparent', border:'none', cursor: movingId?'not-allowed':'pointer', opacity: movingId?.toString()? .6:1 }}>{expanded.has(String(child.id)) ? '▾' : '▸'}</button>
-                    <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
-                      {highlight(child.name)}
-                      {movingId===child.id && <span style={{ width:14, height:14, border:'2px solid #fff', borderTopColor:'transparent', borderRadius:'50%', display:'inline-block', animation:'spin 0.8s linear infinite' }} />}
-                    </span>
-                    <span style={{ marginLeft:'auto', color:'#999', fontSize:12 }}>{child.children_count > 0 ? `${child.children_count} подкат.` : 'лист'}</span>
-                    <button disabled={!!movingId} onClick={async()=>{ const n = prompt('Новое имя категории', child.name); if (!n) return; await fetch('/api/admin/categories/'+child.id, { method:'PUT', headers:{ 'Content-Type':'application/json', ...authHeader() }, body: JSON.stringify({ name:n }) }); setTreeChildren({}); setExpanded(new Set()); loadCategoryChildren(null); }} style={{ marginLeft:8, opacity: movingId?.toString()? .6:1 }}>✎</button>
-                    <button disabled={!!movingId} onClick={async()=>{ if (!(await confirmDelete(child.id, child.name))) return; await fetch('/api/admin/categories/'+child.id, { method:'DELETE', headers: authHeader() }); setTreeChildren({}); setExpanded(new Set()); loadCategoryChildren(null); }} style={{ marginLeft:6, background:'#e88', opacity: movingId?.toString()? .6:1 }}>✕</button>
-                  </div>
-                )) : null
+                expanded.has(pid) ? arr.filter((child) => matchesSearch(child)).map((child) => {
+                  const depth = depthForNode(child);
+                  const indent = Math.max(0, depth - 1) * 18;
+                  const label = labelForNode(child);
+                  return (
+                    <div key={child.id} draggable={!movingId} onDragStart(()=>!movingId&&onDragStartItem(child.id)} onDragOver={(e)=>onDragOverItem(e,child.id)} onDrop(()=>onDropItem(child.id, child.name)} style={{ padding: "6px 10px", paddingLeft: 12 + indent, borderBottom: "1px solid " + (dragOverZone===`end-${pid}`?'rgba(79,140,255,.2)':'#f3f3f3'), display: "flex", alignItems: "center",background: dragOverId===String(child.id)?'rgba(79,140,255,.12)':'transparent', opacity: movingId && movingId!==child.id ? .7 :1 }} title={label}>
+                      <div onDragOver={(e)=>onDragOverZone(e,`before-${child.id}`)} onDrop(()=>onDropBefore(child.id, pid)} style={{ width:6, height:24, marginRight:6, background: dragOverZone===`before-${child.id}` ? 'rgba(79,140,255,.4)':'transparent' }}/>
+                      <button onClick={() => toggleExpand(child.id)} disabled={!!movingId} style={{ marginRight: 6, background: 'transparent', border:'none', cursor: movingId?'not-allowed':'pointer', opacity: movingId?.toString()? .6:1 }}>{expanded.has(String(child.id)) ? '▾' : '▸'}</button>
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
+                        {highlightLabel(label)}
+                        {movingId===child.id && <span style={{ width:14, height:14, border:'2px solid #fff', borderTopColor:'transparent', borderRadius:'50%', display:'inline-block', animation:'spin 0.8s linear infinite' }} />}
+                      </span>
+                      <span style={{ marginLeft:'auto', color:'#999', fontSize:12 }}>{child.children_count > 0 ? `${child.children_count} подкат.` : 'лист'}</span>
+                      <button disabled={!!movingId} onClick={async()=>{ const n = prompt('Новое имя категории', child.name); if (!n) return; await fetch('/api/admin/categories/'+child.id, { method:'PUT', headers:{ 'Content-Type':'application/json', ...authHeader() }, body: JSON.stringify({ name:n }) }); setTreeChildren({}); setExpanded(new Set()); loadCategoryChildren(null); }} style={{ marginLeft:8, opacity: movingId?.toString()? .6:1 }}>✎</button>
+                      <button disabled={!!movingId} onClick={async()=>{ if (!(await confirmDelete(child.id, child.name))) return; await fetch('/api/admin/categories/'+child.id, { method:'DELETE', headers: authHeader() }); setTreeChildren({}); setExpanded(new Set()); loadCategoryChildren(null); }} style={{ marginLeft:6, background:'#e88', opacity: movingId?.toString()? .6:1 }}>✕</button>
+                    </div>
+                  );
+                }) : null
               ))}
               {/* end zone for each expanded list */}
               {Object.entries(treeChildren).filter(([k])=>k!=='root').map(([pid]) => (
@@ -479,9 +523,9 @@ export default function AdminPanel() {
               />
               <select value={newCatParent} onChange={(e) => setNewCatParent(e.target.value)}>
                 <option value="">(корневая)</option>
-                {categoriesFlat.map((c) => (
-                  <option key={c.id} value={c.id} disabled={c.depth >= 5}>
-                    {getBreadcrumb(c.id)}
+                {categoriesPrepared.map((c) => (
+                  <option key={c.id} value={c.id} disabled={c.depth >= 5} title={c.breadcrumb}>
+                    {c.displayLabel || getBreadcrumb(c.id) || c.name}
                   </option>
                 ))}
               </select>
