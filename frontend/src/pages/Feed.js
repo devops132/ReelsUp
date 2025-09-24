@@ -112,17 +112,17 @@ export default function Feed() {
   return (
     <div>
       <h1 className="section-header">Лента ReelsUp</h1>
-      <form onSubmit={search} style={{ textAlign:'center', marginTop:10 }}>
+      <form onSubmit={search} className="feed-controls">
         <input placeholder="Поиск..." value={q} onChange={e=>setQ(e.target.value)} />
-        <select value={category} onChange={e=>{ const val = e.target.value; setCategory(val); if (val) addFilterCat(val); }} style={{ marginLeft: 6 }}>
+        <select value={category} onChange={e=>{ const val = e.target.value; setCategory(val); if (val) addFilterCat(val); }}>
           <option value="">Все категории</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.parent_id ? `${c.name} (${(categories.find(x=>x.id===c.parent_id)?.name)||'—'})` : c.name}</option>)}
         </select>
-        <select value={sort} onChange={e=>{ setSort(e.target.value); load(q, category, e.target.value); }} style={{ marginLeft: 6 }}>
+        <select value={sort} onChange={e=>{ setSort(e.target.value); load(q, category, e.target.value); }}>
           <option value="new">Новые</option>
           <option value="likes">По лайкам</option>
         </select>
-        <button style={{ marginLeft: 6 }}>Найти</button>
+        <button>Найти</button>
       </form>
       {(selectedCats.length || selectedTags.length) ? (
         <div style={{ maxWidth: 1320, margin:'10px auto 0', padding:'0 16px' }}>

@@ -100,7 +100,7 @@ export default function VideoPage() {
   );
 
   return (
-    <div style={{ maxWidth: 1200, margin: '20px auto', position:'relative', display:'grid', gridTemplateColumns:'1fr 360px', gap:24 }}>
+    <div className="video-page">
       <div>
         <h2>{video.title}</h2>
         <VideoPlayer video={video} onLikeToggle={onLikeToggle} onRated={onRated} commentsUI={commentsUI} />
@@ -157,7 +157,7 @@ export default function VideoPage() {
 
       </div>
       {/* Recommendations sticky */}
-      <div style={{ position:'sticky', top:72, alignSelf:'start' }}>
+      <div className="sidebar">
         {recs.length > 0 && (
           <div>
             <h3>Рекомендованные</h3>

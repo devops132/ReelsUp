@@ -87,7 +87,7 @@ export default function VideoJSPlayer({ video, quality, onQualityChange }) {
 
   return (
     <div ref={containerRef} style={{ position:'relative' }}>
-      <div data-vjs-player style={ mini ? { position:'fixed', right:16, bottom:16, width:320, zIndex:40, boxShadow:'0 10px 28px rgba(0,0,0,.45)', borderRadius:8, overflow:'hidden', cursor:'pointer' } : {} }
+      <div data-vjs-player className={ mini ? 'mini-player' : '' } style={ mini ? { position:'fixed', zIndex:40, boxShadow:'0 10px 28px rgba(0,0,0,.45)', borderRadius:8, overflow:'hidden', cursor:'pointer' } : {} }
         onClick={() => { if (mini) window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
         <video ref={videoRef} className="video-js vjs-default-skin" playsInline />
       </div>

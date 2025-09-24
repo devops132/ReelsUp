@@ -16,6 +16,10 @@ CREATE TABLE IF NOT EXISTS categories (
 ALTER TABLE IF EXISTS categories
     ADD COLUMN IF NOT EXISTS parent_id INT REFERENCES categories(id) ON DELETE SET NULL;
 
+-- ordering support for categories siblings
+ALTER TABLE IF EXISTS categories
+    ADD COLUMN IF NOT EXISTS position INT NOT NULL DEFAULT 0;
+
 CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON categories(parent_id);
 
 CREATE TABLE IF NOT EXISTS videos (
@@ -70,6 +74,12 @@ CREATE TABLE IF NOT EXISTS ratings (
     value INT NOT NULL CHECK (value BETWEEN 1 AND 7),
     PRIMARY KEY (user_id, video_id)
 );
+
+-- Banned tags (normalized to lowercase with leading '#')
+CREATE TABLE IF NOT EXISTS banned_tags (
+    tag TEXT PRIMARY KEY
+);
+CREATE INDEX IF NOT EXISTS idx_banned_tags_tag ON banned_tags(tag);
 
 INSERT INTO categories (name) VALUES 
 ('Одежда'), ('Животные'), ('Ювелирка'), ('Косметика'),

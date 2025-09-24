@@ -381,6 +381,24 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	description := r.FormValue("description")
 	tags := r.FormValue("tags")
+	// Validate tags against banned list
+	if strings.TrimSpace(tags) != "" {
+		split := strings.FieldsFunc(tags, func(r rune) bool { return r == ',' || r == ' ' || r == '\n' || r == '\t' })
+		for _, t := range split {
+			if t == "" {
+				continue
+			}
+			if !strings.HasPrefix(t, "#") {
+				t = "#" + t
+			}
+			t = strings.ToLower(t)
+			var x string
+			if err := db.QueryRow("SELECT tag FROM banned_tags WHERE tag=$1", t).Scan(&x); err == nil {
+				http.Error(w, "Запрещённый тег: "+t, http.StatusBadRequest)
+				return
+			}
+		}
+	}
 	productLinks := r.FormValue("productLinks")
 	catStr := r.FormValue("category")
 	uid := r.Context().Value(ctxKeyUserID).(int)

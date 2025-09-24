@@ -26,18 +26,18 @@ export default function NavBar({ darkMode, toggleTheme }) {
           <span className="brand-text">ReelsUp</span>
         </Link>
       </div>
-      <form onSubmit={(e)=>{e.preventDefault(); nav(`/?q=${encodeURIComponent(q)}`);}} style={{ flex:1, maxWidth:600, margin:'0 12px', display:'flex' }}>
+      <form className="navbar-search" onSubmit={(e)=>{e.preventDefault(); nav(`/?q=${encodeURIComponent(q)}`);}}>
         <input placeholder="Поиск..." value={q} onChange={e=>setQ(e.target.value)} style={{ flex:1 }} />
         <button type="submit" style={{ marginLeft:6 }}>Найти</button>
       </form>
-      <div className="links" style={{ display:'flex', alignItems:'center', gap:8 }}>
+      <div className="navbar-links">
         <button onClick={toggleTheme} data-tooltip="Переключить тему" style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:8 }}>
           {darkMode ? <IconSun /> : <IconMoon />}
         </button>
         {user ? (<>
-          <Link to="/upload" data-tooltip="Загрузить" style={{ display:'inline-flex', alignItems:'center', gap:6 }}><IconUpload /> Загрузить</Link>
-          <Link to="/profile" data-tooltip="Профиль" style={{ display:'inline-flex', alignItems:'center', gap:6 }}><IconUser /> Профиль</Link>
-          {user.role === 'admin' && <Link to="/admin" data-tooltip="Админ" style={{ display:'inline-flex', alignItems:'center', gap:6 }}><IconShield /> Админ</Link>}
+          <Link to="/upload" data-tooltip="Загрузить" style={{ display:'inline-flex', alignItems:'center', gap:6 }}><IconUpload /> <span className="label">Загрузить</span></Link>
+          <Link to="/profile" data-tooltip="Профиль" style={{ display:'inline-flex', alignItems:'center', gap:6 }}><IconUser /> <span className="label">Профиль</span></Link>
+          {user.role === 'admin' && <Link to="/admin" data-tooltip="Админ" style={{ display:'inline-flex', alignItems:'center', gap:6 }}><IconShield /> <span className="label">Админ</span></Link>}
           <div style={{ position:'relative' }} ref={menuRef}>
             <button title={user.name || user.email} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 8px', borderRadius:9999 }} onClick={()=>setOpen(!open)}>
               <img src={`https://www.gravatar.com/avatar/${(user.email||'').trim().toLowerCase()}`} alt="avatar" onError={(e)=>{e.currentTarget.style.display='none'}} style={{ width:24, height:24, borderRadius:'50%' }} />

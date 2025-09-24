@@ -53,7 +53,7 @@ export default function VideoPlayer({ video, onLikeToggle, onRated, commentsUI }
       <VideoJSPlayer video={video} quality={quality} onQualityChange={setQuality} />
 
       {/* Floating action pills */}
-      <div style={{ position:'absolute', top:10, right:10, display:'flex', gap:8, alignItems:'center' }}>
+      <div className="vjs-action-pills">
         <div style={{ display:'flex', gap:8, background:'rgba(0,0,0,.35)', padding:'6px 8px', borderRadius:9999 }}>
           <button onClick={toggleLike} data-tooltip="Нравится" style={{ padding:'4px 8px', borderRadius:9999, background:'transparent', color:'#fff', display:'flex', alignItems:'center', gap:6 }}>
             <IconLike color="#fff" /> {video.likes_count}
@@ -75,7 +75,7 @@ export default function VideoPlayer({ video, onLikeToggle, onRated, commentsUI }
       </div>
 
       {/* Rating stars (1..7) */}
-      <div style={{ position:'absolute', bottom:10, left:10, background:'rgba(0,0,0,.35)', borderRadius:12, padding:'6px 10px' }}>
+      <div className="vjs-rating">
         <span style={{ marginRight: 8 }}>Оценка:</span>
         {[1,2,3,4,5,6,7].map(n => (
           <span key={n}
