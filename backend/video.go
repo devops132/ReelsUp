@@ -483,7 +483,9 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request) {
 		bucket = "videos"
 	}
 	// best-effort async removal of all related objects
-	go func(ctx context.Context, bkt string, orig, thumb string, p720, p480 sql.NullString) {
+	go func(bkt string, orig, thumb string, p720, p480 sql.NullString) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 		remove := func(key string) {
 			if key == "" {
 				return
@@ -509,7 +511,7 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request) {
 		if thumb != "" {
 			remove(thumb + ".jpg")
 		}
-	}(r.Context(), bucket, path, thumb, p720, p480)
+	}(bucket, path, thumb, p720, p480)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Видео удалено"})
 }

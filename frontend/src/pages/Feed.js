@@ -118,7 +118,7 @@ export default function Feed() {
           <option value="">Все категории</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.parent_id ? `${c.name} (${(categories.find(x=>x.id===c.parent_id)?.name)||'—'})` : c.name}</option>)}
         </select>
-        <select value={sort} onChange={e=>{ setSort(e.target.value); load(q, category, e.target.value); }}>
+        <select value={sort} onChange={e=>{ const nextSort = e.target.value; setSort(nextSort); load({ q, category, categories:selectedCats, tags:selectedTags, sortBy: nextSort }); }}>
           <option value="new">Новые</option>
           <option value="likes">По лайкам</option>
         </select>
