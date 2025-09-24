@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,7 +10,9 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [err, setErr] = useState('');
 
-  if (user) nav('/');
+  useEffect(() => {
+    if (user) nav('/');
+  }, [user, nav]);
 
   const submit = async (e) => {
     e.preventDefault();
