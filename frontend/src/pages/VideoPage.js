@@ -77,62 +77,6 @@ export default function VideoPage() {
   }, [id]);
   useEffect(() => { fetch('/api/categories').then(r=>r.json()).then(setCategories).catch(()=>{}); }, []);
 
-  useEffect(() => {
-    const node = playerAreaRef.current;
-    if (!node) return undefined;
-    const state = touchStateRef.current;
-
-    const mobileActive = () => {
-      if (!isFullscreen) return false;
-      if (typeof window === 'undefined') return false;
-      return window.innerWidth <= 900;
-    };
-
-    const onTouchStart = (event) => {
-      if (!mobileActive()) { state.active = false; return; }
-      const touch = event.touches[0];
-      if (!touch) return;
-      state.startX = touch.clientX;
-      state.startY = touch.clientY;
-      state.lastX = touch.clientX;
-      state.lastY = touch.clientY;
-      state.active = true;
-    };
-
-    const onTouchMove = (event) => {
-      if (!state.active) return;
-      const touch = event.touches[0];
-      if (!touch) return;
-      state.lastX = touch.clientX;
-      state.lastY = touch.clientY;
-    };
-
-    const onTouchEnd = () => {
-      if (!state.active) return;
-      const deltaY = (state.lastY ?? state.startY) - state.startY;
-      const deltaX = (state.lastX ?? state.startX) - state.startX;
-      state.active = false;
-      if (!mobileActive()) return;
-      const threshold = 60;
-      if (Math.abs(deltaY) < threshold || Math.abs(deltaY) < Math.abs(deltaX)) return;
-      if (deltaY < 0) handleSwipeUp(); else handleSwipeDown();
-    };
-
-    const onTouchCancel = () => { state.active = false; };
-
-    node.addEventListener('touchstart', onTouchStart, { passive: true });
-    node.addEventListener('touchmove', onTouchMove, { passive: true });
-    node.addEventListener('touchend', onTouchEnd);
-    node.addEventListener('touchcancel', onTouchCancel);
-
-    return () => {
-      node.removeEventListener('touchstart', onTouchStart);
-      node.removeEventListener('touchmove', onTouchMove);
-      node.removeEventListener('touchend', onTouchEnd);
-      node.removeEventListener('touchcancel', onTouchCancel);
-    };
-  }, [isFullscreen, handleSwipeUp, handleSwipeDown]);
-
   const addComment = async (e) => {
     e.preventDefault();
     if (!user) { alert('Войдите'); return; }
@@ -209,6 +153,62 @@ export default function VideoPage() {
     isNavigatingRef.current = true;
     navigate(`/video/${prevId}`);
   }, [video, isFullscreen, historyStack, navigate]);
+
+  useEffect(() => {
+    const node = playerAreaRef.current;
+    if (!node) return undefined;
+    const state = touchStateRef.current;
+
+    const mobileActive = () => {
+      if (!isFullscreen) return false;
+      if (typeof window === 'undefined') return false;
+      return window.innerWidth <= 900;
+    };
+
+    const onTouchStart = (event) => {
+      if (!mobileActive()) { state.active = false; return; }
+      const touch = event.touches[0];
+      if (!touch) return;
+      state.startX = touch.clientX;
+      state.startY = touch.clientY;
+      state.lastX = touch.clientX;
+      state.lastY = touch.clientY;
+      state.active = true;
+    };
+
+    const onTouchMove = (event) => {
+      if (!state.active) return;
+      const touch = event.touches[0];
+      if (!touch) return;
+      state.lastX = touch.clientX;
+      state.lastY = touch.clientY;
+    };
+
+    const onTouchEnd = () => {
+      if (!state.active) return;
+      const deltaY = (state.lastY ?? state.startY) - state.startY;
+      const deltaX = (state.lastX ?? state.startX) - state.startX;
+      state.active = false;
+      if (!mobileActive()) return;
+      const threshold = 60;
+      if (Math.abs(deltaY) < threshold || Math.abs(deltaY) < Math.abs(deltaX)) return;
+      if (deltaY < 0) handleSwipeUp(); else handleSwipeDown();
+    };
+
+    const onTouchCancel = () => { state.active = false; };
+
+    node.addEventListener('touchstart', onTouchStart, { passive: true });
+    node.addEventListener('touchmove', onTouchMove, { passive: true });
+    node.addEventListener('touchend', onTouchEnd);
+    node.addEventListener('touchcancel', onTouchCancel);
+
+    return () => {
+      node.removeEventListener('touchstart', onTouchStart);
+      node.removeEventListener('touchmove', onTouchMove);
+      node.removeEventListener('touchend', onTouchEnd);
+      node.removeEventListener('touchcancel', onTouchCancel);
+    };
+  }, [isFullscreen, handleSwipeUp, handleSwipeDown]);
 
   const delComment = async (cid) => {
     if (!user) return;
