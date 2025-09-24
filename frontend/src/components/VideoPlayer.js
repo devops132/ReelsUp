@@ -5,7 +5,15 @@ import { apiPost, apiDelete } from '../api';
 import VideoJSPlayer from './VideoJSPlayer';
 import { IconLike, IconDislike, IconComment, IconShare } from './Icons';
 
-export default function VideoPlayer({ video, onLikeToggle, onRated, commentsUI }) {
+export default function VideoPlayer({
+  video,
+  onLikeToggle,
+  onRated,
+  commentsUI,
+  resumeTime = 0,
+  onProgress,
+  onFullscreenChange
+}) {
   const { user } = useAuth();
   const [quality, setQuality] = useState(video.has_720 ? '720p' : (video.has_480 ? '480p' : 'Оригинал'));
 
@@ -50,7 +58,14 @@ export default function VideoPlayer({ video, onLikeToggle, onRated, commentsUI }
 
   return (
     <div style={{ position:'relative', maxWidth: '900px', margin: '0 auto' }}>
-      <VideoJSPlayer video={video} quality={quality} onQualityChange={setQuality} />
+      <VideoJSPlayer
+        video={video}
+        quality={quality}
+        onQualityChange={setQuality}
+        resumeTime={resumeTime}
+        onTimeUpdate={onProgress}
+        onFullscreenChange={onFullscreenChange}
+      />
 
       {/* Floating action pills */}
       <div className="vjs-action-pills">
