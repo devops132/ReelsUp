@@ -66,6 +66,166 @@ a:hover { text-decoration: underline; filter: brightness(1.1); }
   max-width: 1320px;
   margin: 0 auto;
 }
+
+.live-block {
+  max-width: 1320px;
+  margin: 0 auto 32px;
+  padding: 0 16px;
+}
+
+.live-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.live-block-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.live-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.live-grid.scheduled {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.live-card {
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--card-bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 28px rgba(0,0,0,.35);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.live-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(0,0,0,.45);
+}
+
+.live-card.compact h3 {
+  font-size: 1rem;
+}
+
+.live-thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  background: #05080e;
+  overflow: hidden;
+}
+
+.live-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.live-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(79,140,255,.32), rgba(34,197,94,.24));
+  font-size: 2rem;
+}
+
+.live-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.live-badge.live {
+  background: rgba(239,68,68,.92);
+  color: #fff;
+}
+
+.live-badge.scheduled {
+  background: rgba(79,140,255,.85);
+  color: #fff;
+}
+
+.live-badge.ended {
+  background: rgba(148,163,184,.85);
+  color: #0b0f13;
+}
+
+.live-body {
+  padding: 12px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.live-body h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.live-body p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.live-meta {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.live-subtitle {
+  margin: 0 0 10px;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.live-error {
+  color: var(--err-color);
+  background: rgba(239,68,68,0.12);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(239,68,68,0.25);
+}
+
+.live-success {
+  color: var(--ok-color);
+  background: rgba(34,197,94,0.12);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(34,197,94,0.25);
+}
+
+.live-empty {
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
+.live-loading {
+  color: var(--text-muted);
+}
 .video-card {
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -98,6 +258,151 @@ button:hover { background: #243142; }
 button.primary { background: var(--accent-color); border-color: var(--accent-color); color: #fff; }
 button.primary:hover { filter: brightness(1.05); }
 .form { max-width: 520px; margin: 20px auto; display: grid; gap: 10px; }
+.ghost-button {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+.ghost-button:hover { background: rgba(255,255,255,0.06); }
+.ghost-link { color: var(--accent-color); }
+.danger-button { background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; }
+.danger-button:hover { background: rgba(239,68,68,0.2); }
+
+.profile-section {
+  margin: 32px 0;
+}
+
+.live-form {
+  background: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.checkbox-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.checkbox-inline input {
+  width: auto;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.live-manage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 18px 0 10px;
+}
+
+.live-manage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.live-manage-item {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.live-manage-item.editing {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px rgba(79,140,255,0.3);
+}
+
+.live-manage-info h4 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+
+.live-manage-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.status-badge.status-live {
+  background: rgba(239,68,68,0.2);
+  color: #f87171;
+}
+
+.status-badge.status-scheduled {
+  background: rgba(79,140,255,0.18);
+  color: #93c5fd;
+}
+
+.status-badge.status-ended {
+  background: rgba(148,163,184,0.18);
+  color: #e2e8f0;
+}
+
+.live-manage-description {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.live-manage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.live-manage-actions button {
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.text-muted {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
 
 /* Focus ring for a11y */
 button:focus-visible, a:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(79,140,255,.35); border-color: var(--accent-color); border-radius: 10px; }

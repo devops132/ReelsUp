@@ -20,6 +20,16 @@ export async function apiPost(path, data) {
   return res.json();
 }
 
+export async function apiPut(path, data) {
+  const res = await fetch(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('PUT ' + path + ' -> ' + res.status);
+  return res.json();
+}
+
 export async function apiDelete(path) {
   const res = await fetch(path, { method: 'DELETE', headers: { ...authHeader() } });
   if (!res.ok) throw new Error('DELETE ' + path + ' -> ' + res.status);

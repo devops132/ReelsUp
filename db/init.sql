@@ -40,6 +40,24 @@ CREATE TABLE IF NOT EXISTS videos (
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS live_streams (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT,
+    stream_url TEXT NOT NULL,
+    thumbnail_url TEXT,
+    status TEXT NOT NULL DEFAULT 'scheduled',
+    scheduled_at TIMESTAMP,
+    started_at TIMESTAMP,
+    ended_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_live_streams_status ON live_streams(status);
+CREATE INDEX IF NOT EXISTS idx_live_streams_user ON live_streams(user_id);
+CREATE INDEX IF NOT EXISTS idx_live_streams_scheduled_at ON live_streams(scheduled_at);
+
 -- ensure columns exist for legacy databases
 ALTER TABLE IF EXISTS videos
     ADD COLUMN IF NOT EXISTS video_path_720 TEXT,

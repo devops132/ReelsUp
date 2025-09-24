@@ -207,6 +207,8 @@ func main() {
 	api.HandleFunc("/videos/{id:[0-9]+}/thumbnail/animated", VideoThumbnailAnimatedHandler).Methods("GET")
 	api.HandleFunc("/videos/{id:[0-9]+}/comments", ListCommentsHandler).Methods("GET")
 	api.HandleFunc("/categories", CategoriesHandler).Methods("GET")
+	api.HandleFunc("/livestreams", ListLiveStreamsHandler).Methods("GET")
+	api.HandleFunc("/livestreams/{id:[0-9]+}", GetLiveStreamHandler).Methods("GET")
 
 	authR := api.PathPrefix("").Subrouter()
 	authR.Use(JWTAuthMiddleware)
@@ -223,6 +225,11 @@ func main() {
 	authR.HandleFunc("/videos/{id:[0-9]+}/dislike", DislikeVideoHandler).Methods("POST")
 	authR.HandleFunc("/videos/{id:[0-9]+}/dislike", UndislikeVideoHandler).Methods("DELETE")
 	authR.HandleFunc("/user/videos", ListMyVideosHandler).Methods("GET")
+	authR.HandleFunc("/livestreams", CreateLiveStreamHandler).Methods("POST")
+	authR.HandleFunc("/livestreams/{id:[0-9]+}", UpdateLiveStreamHandler).Methods("PUT")
+	authR.HandleFunc("/livestreams/{id:[0-9]+}/status", UpdateLiveStreamStatusHandler).Methods("PUT")
+	authR.HandleFunc("/livestreams/{id:[0-9]+}", DeleteLiveStreamHandler).Methods("DELETE")
+	authR.HandleFunc("/user/livestreams", ListMyLiveStreamsHandler).Methods("GET")
 
 	admin := api.PathPrefix("/admin").Subrouter()
 	admin.Use(JWTAuthMiddleware, AdminOnlyMiddleware)
