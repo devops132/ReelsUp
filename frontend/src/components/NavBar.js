@@ -27,8 +27,8 @@ export default function NavBar({ darkMode, toggleTheme }) {
         </Link>
       </div>
       <form className="navbar-search" onSubmit={(e)=>{e.preventDefault(); nav(`/?q=${encodeURIComponent(q)}`);}}>
-        <input placeholder="Поиск..." value={q} onChange={e=>setQ(e.target.value)} style={{ flex:1 }} />
-        <button type="submit" style={{ marginLeft:6 }}>Найти</button>
+        <input placeholder="Поиск..." value={q} onChange={e=>setQ(e.target.value)} />
+        <button type="submit">Найти</button>
       </form>
       <div className="navbar-links">
         <button onClick={toggleTheme} data-tooltip="Переключить тему" style={{ display:'flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius:8 }}>

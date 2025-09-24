@@ -6,11 +6,12 @@ import 'video.js/dist/video-js.css';
 /**
  * props: video {id, has_720, has_480}, defaultQuality
  */
-export default function VideoJSPlayer({ video, quality, onQualityChange }) {
+export default function VideoJSPlayer({ video, quality, onQualityChange, overlayDurationMs = 1200 }) {
   const videoRef = useRef(null);
   const playerRef = useRef(null);
   const containerRef = useRef(null);
   const [mini, setMini] = React.useState(false);
+  const statusTimeoutRef = useRef(null);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -55,11 +56,32 @@ export default function VideoJSPlayer({ video, quality, onQualityChange }) {
     const fullscreenToggle = controlBar.getChild('fullscreenToggle');
     controlBar.el().insertBefore(wrapper, fullscreenToggle ? fullscreenToggle.el() : null);
 
+    // Center play/pause overlay for mobile fullscreen
+    const overlay = document.createElement('div');
+    overlay.className = 'vjs-center-toggle';
+    const status = document.createElement('div');
+    status.className = 'vjs-center-status';
+    overlay.appendChild(status);
+    const playSvg = '\n<svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">\n  <path d="M8 5v14l11-7-11-7Z" fill="#fff"/>\n</svg>';
+    const pauseSvg = '\n<svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">\n  <rect x="6" y="5" width="4" height="14" fill="#fff"/>\n  <rect x="14" y="5" width="4" height="14" fill="#fff"/>\n</svg>';
+    const onOverlayClick = () => {
+      if (!playerRef.current) return;
+      const wasPaused = playerRef.current.paused();
+      if (wasPaused) playerRef.current.play(); else playerRef.current.pause();
+      status.innerHTML = wasPaused ? playSvg : pauseSvg;
+      status.classList.add('show');
+      if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
+      statusTimeoutRef.current = setTimeout(() => { status.classList.remove('show'); }, overlayDurationMs);
+    };
+    overlay.addEventListener('click', onOverlayClick);
+    playerRef.current.el().appendChild(overlay);
+
     return () => {
       if (playerRef.current) {
         playerRef.current.dispose();
         playerRef.current = null;
       }
+      if (statusTimeoutRef.current) { clearTimeout(statusTimeoutRef.current); statusTimeoutRef.current = null; }
     };
     }, [video.id]);
 
