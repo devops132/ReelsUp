@@ -21,8 +21,8 @@ func CategoriesHandler(w http.ResponseWriter, r *http.Request) {
             UNION ALL
             SELECT c.id, c.name, c.parent_id, COALESCE(c.position, 0) AS pos,
                    tree.depth + 1,
-                   tree.sort_path || COALESCE(c.position, 0) || c.id,
-                   tree.path_names || c.name
+                   tree.sort_path || ARRAY[COALESCE(c.position, 0), c.id],
+                   tree.path_names || ARRAY[c.name]
             FROM categories c
             JOIN tree ON c.parent_id = tree.id
         ),
