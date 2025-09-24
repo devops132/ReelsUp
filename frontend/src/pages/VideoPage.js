@@ -6,6 +6,7 @@ import { apiGet, apiPost, apiDelete } from '../api';
 import { IconCopy } from '../components/Icons';
 import VideoPlayer from '../components/VideoPlayer';
 import VideoCard from '../components/VideoCard';
+import { normalizeCategoryTree, formatCategoryOption } from '../utils/categoryTree';
 
 export default function VideoPage() {
   const { id } = useParams();
@@ -20,7 +21,7 @@ export default function VideoPage() {
   const [recs, setRecs] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [editCategory, setEditCategory] = useState('');
-  const [categories, setCategories] = useState([]);
+  const [categoryOptions, setCategoryOptions] = useState([]);
   const [editTags, setEditTags] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -75,7 +76,15 @@ export default function VideoPage() {
       setForwardStack([]);
     }
   }, [id]);
-  useEffect(() => { fetch('/api/categories').then(r=>r.json()).then(setCategories).catch(()=>{}); }, []);
+  useEffect(() => {
+    fetch('/api/categories')
+      .then((r) => r.json())
+      .then((data) => {
+        const normalized = normalizeCategoryTree(data);
+        setCategoryOptions(normalized.flat);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const node = playerAreaRef.current;
@@ -288,7 +297,11 @@ export default function VideoPage() {
           <label>Категория
             <select value={editCategory} onChange={e=>setEditCategory(e.target.value)} style={{ marginLeft: 6 }}>
               <option value="">-- Без категории --</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {categoryOptions.map((c) => (
+                <option key={c.id} value={c.id} title={c.fullName}>
+                  {formatCategoryOption(c)}
+                </option>
+              ))}
             </select>
           </label>
           <br/>
