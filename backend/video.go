@@ -461,7 +461,10 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 	var owner int
 	var path string
-	if err := db.QueryRow("SELECT user_id, video_path FROM videos WHERE id=$1", id).Scan(&owner, &path); err != nil {
+	var thumb string
+	// also fetch transcoded keys to remove them
+	var p720, p480 sql.NullString
+	if err := db.QueryRow("SELECT user_id, video_path, thumbnail_path, video_path_720, video_path_480 FROM videos WHERE id=$1", id).Scan(&owner, &path, &thumb, &p720, &p480); err != nil {
 		http.Error(w, "Видео не найдено", http.StatusNotFound)
 		return
 	}
@@ -479,9 +482,34 @@ func DeleteVideoHandler(w http.ResponseWriter, r *http.Request) {
 	if bucket == "" {
 		bucket = "videos"
 	}
-	if err := minioClient.RemoveObject(r.Context(), bucket, path, minio.RemoveObjectOptions{}); err != nil {
-		fmt.Println("MinIO remove error:", err)
-	}
+	// best-effort async removal of all related objects
+	go func(ctx context.Context, bkt string, orig, thumb string, p720, p480 sql.NullString) {
+		remove := func(key string) {
+			if key == "" {
+				return
+			}
+			if err := minioClient.RemoveObject(ctx, bkt, key, minio.RemoveObjectOptions{}); err != nil {
+				fmt.Println("MinIO remove error:", key, err)
+			}
+		}
+		remove(orig)
+		// variants
+		if p720.Valid {
+			remove(p720.String)
+		} else {
+			remove(orig + ".720.mp4")
+		}
+		if p480.Valid {
+			remove(p480.String)
+		} else {
+			remove(orig + ".480.mp4")
+		}
+		// thumbnails (gif + jpg)
+		remove(thumb)
+		if thumb != "" {
+			remove(thumb + ".jpg")
+		}
+	}(r.Context(), bucket, path, thumb, p720, p480)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Видео удалено"})
 }

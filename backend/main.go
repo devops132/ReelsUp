@@ -7,7 +7,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -141,23 +143,24 @@ func main() {
 	dbName := os.Getenv("POSTGRES_DB")
 	dbHost := os.Getenv("POSTGRES_HOST")
 	if dbHost == "" {
-		dbHost = "localhost"
+		dbHost = "postgres"
 	}
 
 	if os.Getenv("JWT_SECRET") == "" {
-		os.Setenv("JWT_SECRET", "secret")
+		log.Fatal("JWT_SECRET is required and must not be empty")
 	}
 	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", dbHost, dbUser, dbPassword, dbName)
 	var err error
-	db, err = sql.Open("postgres", connStr)
+	db, err = waitForDB(connStr, 60)
 	if err != nil {
-		log.Fatalf("DB connect error: %v", err)
+		log.Fatalf("DB connect timeout: %v", err)
 	}
-	if err = db.Ping(); err != nil {
-		log.Fatalf("DB ping error: %v", err)
-	}
+	// optional: tune pool
+	db.SetMaxOpenConns(20)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(30 * time.Minute)
 	log.Println("Connected to PostgreSQL")
 
 	adminEmailLog := strings.ToLower(strings.TrimSpace(os.Getenv("ADMIN_EMAIL")))
@@ -171,6 +174,9 @@ func main() {
 		adminPwdSet = "no"
 	}
 	log.Println("seedAdmin: env check -> ADMIN_EMAIL=", adminEmailLog, " ADMIN_PASSWORD set? ", adminPwdSet)
+	// Ensure initial admin exists / updated per env
+	seedAdmin()
+
 	// MinIO
 	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
 	if minioEndpoint == "" {
@@ -179,26 +185,14 @@ func main() {
 	minioAccess := os.Getenv("MINIO_ACCESS_KEY")
 	minioSecretKey := os.Getenv("MINIO_SECRET_KEY")
 
-	minioClient, err = minio.New(minioEndpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(minioAccess, minioSecretKey, ""),
-		Secure: false,
-	})
-	if err != nil {
-		log.Fatalf("MinIO init error: %v", err)
-	}
 	bucket := os.Getenv("MINIO_BUCKET")
 	if bucket == "" {
 		bucket = "videos"
 	}
-	exists, err := minioClient.BucketExists(context.Background(), bucket)
+	// wait for MinIO and ensure bucket exists
+	minioClient, err = waitForMinIO(minioEndpoint, minioAccess, minioSecretKey, bucket, 60)
 	if err != nil {
-		log.Fatalf("MinIO bucket check error: %v", err)
-	}
-	if !exists {
-		if err := minioClient.MakeBucket(context.Background(), bucket, minio.MakeBucketOptions{Region: "us-east-1"}); err != nil {
-			log.Fatalf("MinIO make bucket error: %v", err)
-		}
-		log.Println("Created bucket:", bucket)
+		log.Fatalf("MinIO init timeout: %v", err)
 	}
 	log.Println("Connected to MinIO, bucket:", bucket)
 
@@ -252,8 +246,29 @@ func main() {
 	admin.HandleFunc("/tags/ban/{tag}", AdminUnbanTagHandler).Methods("DELETE")
 
 	addr := ":8080"
-	log.Println("HTTP server on", addr)
-	if err := http.ListenAndServe(addr, r); err != nil {
-		log.Fatal(err)
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       90 * time.Second,
+	}
+	go func() {
+		log.Println("HTTP server on", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server error: %v", err)
+		}
+	}()
+
+	// Graceful shutdown
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	<-stop
+	log.Println("Shutting down HTTP server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("Shutdown error: %v", err)
 	}
 }

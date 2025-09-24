@@ -79,17 +79,11 @@ CREATE TABLE IF NOT EXISTS ratings (
 CREATE TABLE IF NOT EXISTS banned_tags (
     tag TEXT PRIMARY KEY
 );
-CREATE INDEX IF NOT EXISTS idx_banned_tags_tag ON banned_tags(tag);
+-- PK already indexes tag; extra index redundant. Keep for legacy, but safe to skip.
+-- CREATE INDEX IF NOT EXISTS idx_banned_tags_tag ON banned_tags(tag);
 
 INSERT INTO categories (name) VALUES 
 ('Одежда'), ('Животные'), ('Ювелирка'), ('Косметика'),
 ('Туризм'), ('Хоз.Товары'), ('Спорттовары')
 ON CONFLICT DO NOTHING;
 
--- Пароли захешированы bcrypt (cost=12)
-INSERT INTO users (email, password_hash, name, role) VALUES
-('admin@example.com', '$2b$12$jo/qhANdAyqikVqJkAHmB.vn1/gVgjmjXHHjAd17b5vWcuMnrcjDa', 'Admin', 'admin'),
-('business@example.com', '$2b$12$jo/qhANdAyqikVqJkAHmB.vn1/gVgjmjXHHjAd17b5vWcuMnrcjDa', 'Business User', 'business')
-ON CONFLICT DO NOTHING;
--- (admin123) -> $2a$12$Qm1yH0y3Jx4k1t2rJ7UawOVT8a0XKfXf0YyES5Z3wXK6jYv1wM2Dm
--- (business123) -> $2a$12$h5Qz3VQkqQd9a6d2M4n4gO2w2a0YqG3l1qgYqXo0mNmwqI2d1Zr3m
