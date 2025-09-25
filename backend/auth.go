@@ -62,7 +62,8 @@ func JWTOptionalMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		if !strings.HasPrefix(auth, "Bearer ") {
-			http.Error(w, "Недействительный токен", http.StatusUnauthorized)
+			// Treat malformed/invalid Authorization as anonymous instead of hard failing
+			next.ServeHTTP(w, r)
 			return
 		}
 		tokenStr := strings.TrimPrefix(auth, "Bearer ")
@@ -71,7 +72,8 @@ func JWTOptionalMiddleware(next http.Handler) http.Handler {
 			return jwtSecret, nil
 		})
 		if err != nil || !token.Valid {
-			http.Error(w, "Недействительный токен", http.StatusUnauthorized)
+			// On optional middleware, proceed as unauthenticated when token is invalid/expired
+			next.ServeHTTP(w, r)
 			return
 		}
 		ctx := context.WithValue(r.Context(), ctxKeyUserID, claims.UserID)
