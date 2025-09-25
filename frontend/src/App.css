@@ -580,3 +580,37 @@ button:focus-visible, a:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb
 .vjs-scale-overlay .vjs-scale-buttons button.active { background: rgba(255,255,255,.2); }
 .vjs-scale-remember { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,.55); color: #fff; padding: 6px 12px; border-radius: 9999px; font-size: 12px; pointer-events: auto; }
 .vjs-scale-remember input { width: 16px; height: 16px; }
+
+/* Quality control alignment (keep inside player, no horizontal overflow) */
+.video-js .vjs-control-bar { position: absolute; left: 0; right: 0; }
+.video-js .vjs-control-bar .vjs-quality-menu {
+  position: absolute;
+  right: 3.2em; /* leave space for fullscreen button */
+  bottom: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-right: 4px;
+}
+.video-js .vjs-quality-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: rgba(0,0,0,.35);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px 8px;
+  max-width: 96px;
+  outline: none;
+}
+@media (max-width: 600px) {
+  .video-js .vjs-control-bar .vjs-quality-menu { right: 3em; }
+  .video-js .vjs-quality-select {
+    font-size: 11px;
+    padding: 2px 6px;
+    max-width: 78px;
+  }
+}
