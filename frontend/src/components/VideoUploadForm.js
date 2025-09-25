@@ -2,11 +2,12 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { normalizeCategoryTree, formatCategoryOption } from '../utils/categoryTree';
 
 export default function VideoUploadForm() {
   const { user, token } = useAuth();
   const nav = useNavigate();
-  const [categories, setCategories] = useState([]);
+  const [categoryOptions, setCategoryOptions] = useState([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
@@ -19,7 +20,13 @@ export default function VideoUploadForm() {
 
   useEffect(() => {
     if (!user) { nav('/login'); return; }
-    fetch('/api/categories').then(r=>r.json()).then(setCategories).catch(()=>{});
+    fetch('/api/categories')
+      .then((r) => r.json())
+      .then((data) => {
+        const normalized = normalizeCategoryTree(data);
+        setCategoryOptions(normalized.flat);
+      })
+      .catch(() => {});
   }, [user, nav]);
 
   const submit = (e) => {
@@ -101,7 +108,11 @@ export default function VideoUploadForm() {
       <label>Ссылка на маркетплейс<input value={productLinks} onChange={e=>setProductLinks(e.target.value)} placeholder="https://..." disabled={uploading} /></label>
       <label>Категория<select value={category} onChange={e=>setCategory(e.target.value)} disabled={uploading}>
         <option value="">-- Не выбрана --</option>
-        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        {categoryOptions.map((c) => (
+          <option key={c.id} value={c.id} title={c.fullName}>
+            {formatCategoryOption(c)}
+          </option>
+        ))}
       </select></label>
       {uploading && (
         <div style={{marginTop: 10}}>
