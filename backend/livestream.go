@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -137,15 +138,17 @@ func ListLiveStreamsHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		query += " ORDER BY COALESCE(l.started_at, l.created_at) DESC"
 	}
-	params := []any{limit}
-	query += fmt.Sprintf(" LIMIT $%d", len(params))
-	rows, err := db.Query(query, params...)
+	// Use a literal LIMIT to avoid driver-specific issues with parameterized LIMIT
+	query += fmt.Sprintf(" LIMIT %d", limit)
+	rows, err := db.Query(query)
 	if err != nil {
+		log.Printf("ListLiveStreamsHandler: query error: %v", err)
 		http.Error(w, "Ошибка получения трансляций", http.StatusInternalServerError)
 		return
 	}
 	streams, err := scanLiveStreams(rows)
 	if err != nil {
+		log.Printf("ListLiveStreamsHandler: scan error: %v", err)
 		http.Error(w, "Ошибка данных", http.StatusInternalServerError)
 		return
 	}

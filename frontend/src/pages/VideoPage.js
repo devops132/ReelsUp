@@ -38,12 +38,25 @@ export default function VideoPage() {
   const currentTimeRef = useRef(0);
 
   const load = async () => {
+    setErr('');
+    let v;
     try {
-      setErr('');
-      const v = await apiGet('/api/videos/' + id);
+      v = await apiGet('/api/videos/' + id);
       setVideo(v);
+    } catch {
+      setErr('Видео не найдено или недоступно');
+      isNavigatingRef.current = false;
+      navIntentRef.current = null;
+      pendingResumeRef.current = null;
+      return;
+    }
+
+    try {
       const c = await apiGet('/api/videos/' + id + '/comments');
       setComments(c);
+    } catch {}
+
+    try {
       // recommendations: same category, exclude current, sort by likes
       const rec = await apiGet(`/api/videos?category=${v.category_id || ''}&exclude=${id}&sort=likes`);
       const filtered = rec.filter(x => x.id !== Number(id)).slice(0, 20);
@@ -52,20 +65,16 @@ export default function VideoPage() {
       historyStack.forEach(item => knownIds.add(Number(item.id)));
       forwardStack.forEach(item => knownIds.add(Number(item.id)));
       setSwipeQueue(filtered.filter(x => !knownIds.has(Number(x.id))));
-      const pendingResume = pendingResumeRef.current;
-      const storedResume = playbackPositionsRef.current[v.id] || 0;
-      const nextResume = pendingResume != null ? pendingResume : storedResume;
-      pendingResumeRef.current = null;
-      setResumeTime(nextResume);
-      currentTimeRef.current = nextResume || 0;
-      isNavigatingRef.current = false;
-      navIntentRef.current = null;
-    } catch {
-      setErr('Видео не найдено или недоступно');
-      isNavigatingRef.current = false;
-      navIntentRef.current = null;
-      pendingResumeRef.current = null;
-    }
+    } catch {}
+
+    const pendingResume = pendingResumeRef.current;
+    const storedResume = playbackPositionsRef.current[v.id] || 0;
+    const nextResume = pendingResume != null ? pendingResume : storedResume;
+    pendingResumeRef.current = null;
+    setResumeTime(nextResume);
+    currentTimeRef.current = nextResume || 0;
+    isNavigatingRef.current = false;
+    navIntentRef.current = null;
   };
 
   useEffect(() => { load(); }, [id]);

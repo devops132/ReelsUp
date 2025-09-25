@@ -192,6 +192,7 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request) {
          WHERE v.id = $1`, id).Scan(&v.ID, &v.Title, &v.Description, &v.Tags, &v.ProductLinks, &v.Thumbnail, &v.VideoPath,
 		&v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.LikesCount, &v.DislikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480, &v.ViewsCount)
 	if err != nil {
+		log.Printf("GetVideoHandler: query error for id=%d: %v", id, err)
 		http.Error(w, "Видео не найдено", http.StatusNotFound)
 		return
 	}
@@ -202,6 +203,7 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request) {
 		uid, uidOk := r.Context().Value(ctxKeyUserID).(int)
 		role, roleOk := r.Context().Value(ctxKeyUserRole).(string)
 		if !(uidOk && roleOk && (role == "admin" || uid == v.UserID)) {
+			log.Printf("GetVideoHandler: access to unapproved video id=%d denied: uidOk=%v roleOk=%v role=%v uid=%v owner=%v", v.ID, uidOk, roleOk, role, uid, v.UserID)
 			http.Error(w, "Видео ожидает модерации", http.StatusForbidden)
 			return
 		}
@@ -229,6 +231,7 @@ func VideoContentHandler(w http.ResponseWriter, r *http.Request) {
 	var approved bool
 	var owner int
 	if err := db.QueryRow("SELECT video_path, video_path_720, video_path_480, is_approved, user_id FROM videos WHERE id=$1", id).Scan(&orig, &p720, &p480, &approved, &owner); err != nil {
+		log.Printf("VideoContentHandler: query error for id=%d: %v", id, err)
 		http.Error(w, "Видео не найдено", http.StatusNotFound)
 		return
 	}
@@ -263,6 +266,7 @@ func VideoContentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	info, err := minioClient.StatObject(r.Context(), bucket, path, minio.StatObjectOptions{})
 	if err != nil {
+		log.Printf("VideoContentHandler: StatObject error bucket=%s key=%s: %v", bucket, path, err)
 		http.Error(w, "Файл не найден", http.StatusNotFound)
 		return
 	}
@@ -272,6 +276,7 @@ func VideoContentHandler(w http.ResponseWriter, r *http.Request) {
 		// stream full file
 		obj, err := minioClient.GetObject(r.Context(), bucket, path, minio.GetObjectOptions{})
 		if err != nil {
+			log.Printf("VideoContentHandler: GetObject error bucket=%s key=%s: %v", bucket, path, err)
 			http.Error(w, "Ошибка доступа к файлу", http.StatusInternalServerError)
 			return
 		}
@@ -303,6 +308,7 @@ func VideoContentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	obj, err := minioClient.GetObject(r.Context(), bucket, path, opts)
 	if err != nil {
+		log.Printf("VideoContentHandler: ranged GetObject error bucket=%s key=%s: %v", bucket, path, err)
 		http.Error(w, "Ошибка доступа к файлу", http.StatusInternalServerError)
 		return
 	}
