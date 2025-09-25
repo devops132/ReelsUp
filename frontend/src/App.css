@@ -570,3 +570,13 @@ button:focus-visible, a:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb
 @media (hover: none) and (pointer: coarse) {
   .vjs-fullscreen .vjs-center-toggle { display: flex; pointer-events: auto; }
 }
+.video-js.vjs-scale-cover .vjs-tech { object-fit: cover; }
+.video-js.vjs-scale-contain .vjs-tech { object-fit: contain; }
+.video-js.vjs-fullscreen,
+.video-js.vjs-fullscreen .vjs-tech { width: 100% !important; height: 100% !important; }
+.vjs-scale-overlay { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 120; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+.vjs-scale-overlay .vjs-scale-buttons { display: inline-flex; gap: 6px; padding: 6px; background: rgba(0,0,0,.55); border-radius: 9999px; pointer-events: auto; }
+.vjs-scale-overlay .vjs-scale-buttons button { border: none; background: transparent; color: #fff; padding: 6px 12px; border-radius: 9999px; font-size: 14px; }
+.vjs-scale-overlay .vjs-scale-buttons button.active { background: rgba(255,255,255,.2); }
+.vjs-scale-remember { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,.55); color: #fff; padding: 6px 12px; border-radius: 9999px; font-size: 12px; pointer-events: auto; }
+.vjs-scale-remember input { width: 16px; height: 16px; }
