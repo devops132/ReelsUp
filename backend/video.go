@@ -370,12 +370,21 @@ func parseRangeHeader(header string, size int64) (int64, int64, error) {
 }
 
 func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(300 << 20); err != nil {
+	// Allow large uploads; default to 500 MB, overridable via UPLOAD_MAX_MB
+	maxMB := 500
+	if v := strings.TrimSpace(os.Getenv("UPLOAD_MAX_MB")); v != "" {
+		if x, err := strconv.Atoi(v); err == nil && x > 0 {
+			maxMB = x
+		}
+	}
+	if err := r.ParseMultipartForm(int64(maxMB) << 20); err != nil {
+		log.Printf("UploadVideoHandler: ParseMultipartForm error: %v", err)
 		http.Error(w, "Слишком большой запрос", http.StatusBadRequest)
 		return
 	}
 	file, hdr, err := r.FormFile("file")
 	if err != nil {
+		log.Printf("UploadVideoHandler: file not found in form: %v", err)
 		http.Error(w, "Видео файл не найден", http.StatusBadRequest)
 		return
 	}
@@ -420,6 +429,7 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 		ContentType: hdr.Header.Get("Content-Type"),
 	})
 	if err != nil {
+		log.Printf("UploadVideoHandler: MinIO PutObject error bucket=%s key=%s: %v", bucket, objectName, err)
 		http.Error(w, "Ошибка сохранения видео", http.StatusInternalServerError)
 		return
 	}
@@ -441,6 +451,7 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 			uid, title, description, tags, productLinks, objectName, "", isApproved).Scan(&videoID)
 	}
 	if err != nil {
+		log.Printf("UploadVideoHandler: insert video meta error: %v", err)
 		http.Error(w, "Ошибка сохранения метаданных", http.StatusInternalServerError)
 		return
 	}

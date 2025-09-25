@@ -22,6 +22,7 @@ export default function VideoUploadForm() {
 
   const submit = (e) => {
     e.preventDefault();
+    setError('');
     if (!file) { setError('Выберите файл видео'); return; }
     const fd = new FormData();
     fd.append('file', file);
@@ -34,11 +35,29 @@ export default function VideoUploadForm() {
       method: 'POST',
       headers: { 'Authorization': token ? 'Bearer ' + token : '' },
       body: fd
-    }).then(r => {
-      if (!r.ok) throw new Error();
-      return r.json();
-    }).then(() => { alert('Видео отправлено на модерацию'); nav('/profile'); })
-      .catch(()=> setError('Не удалось загрузить видео'));
+    }).then(async r => {
+      if (r.ok) {
+        const data = await r.json();
+        alert(data?.message || 'Видео отправлено на модерацию');
+        nav('/profile');
+        return;
+      }
+      if (r.status === 401) {
+        setError('Сессия истекла. Войдите заново.');
+        nav('/login');
+        return;
+      }
+      if (r.status === 413) {
+        setError('Файл слишком большой. Уменьшите размер или свяжитесь с админом.');
+        return;
+      }
+      const text = await r.text().catch(() => '');
+      setError(text || ('Не удалось загрузить видео (код ' + r.status + ')'));
+    }).catch(err => {
+      setError('Не удалось загрузить видео');
+      // optional: console for diagnostics
+      try { console.error('upload error', err); } catch {}
+    });
   };
 
   if (!user) return null;
