@@ -35,3 +35,13 @@ export async function apiDelete(path) {
   if (!res.ok) throw new Error('DELETE ' + path + ' -> ' + res.status);
   return res.json();
 }
+
+export async function apiUpload(path, formData) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { ...authHeader() },
+    body: formData
+  });
+  if (!res.ok) throw new Error('UPLOAD ' + path + ' -> ' + res.status);
+  return res.json();
+}

@@ -200,6 +200,8 @@ func main() {
 	api := r.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/register", RegisterHandler).Methods("POST")
 	api.HandleFunc("/login", LoginHandler).Methods("POST")
+	// Public avatar content for MinIO-stored avatars
+	api.HandleFunc("/users/{id:[0-9]+}/avatar", UserAvatarContentHandler).Methods("GET")
 	api.HandleFunc("/videos", ListVideosHandler).Methods("GET")
 	api.Handle("/videos/{id:[0-9]+}", JWTOptionalMiddleware(http.HandlerFunc(GetVideoHandler))).Methods("GET")
 	api.Handle("/videos/{id:[0-9]+}/content", JWTOptionalMiddleware(http.HandlerFunc(VideoContentHandler))).Methods("GET")
@@ -212,6 +214,10 @@ func main() {
 
 	authR := api.PathPrefix("").Subrouter()
 	authR.Use(JWTAuthMiddleware)
+	// Current user profile and avatar management
+	authR.HandleFunc("/user/me", GetCurrentUserHandler).Methods("GET")
+	authR.HandleFunc("/user/avatar", UploadAvatarHandler).Methods("POST")
+	authR.HandleFunc("/user/avatar/preset", SetPresetAvatarHandler).Methods("POST")
 	authR.HandleFunc("/videos", UploadVideoHandler).Methods("POST")
 	authR.HandleFunc("/videos/{id:[0-9]+}", DeleteVideoHandler).Methods("DELETE")
 	authR.HandleFunc("/videos/{id:[0-9]+}", UpdateVideoMetaHandler).Methods("PUT")

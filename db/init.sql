@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     name TEXT,
-    role TEXT NOT NULL DEFAULT 'user'
+    role TEXT NOT NULL DEFAULT 'user',
+    avatar_path TEXT
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -63,6 +64,10 @@ ALTER TABLE IF EXISTS videos
     ADD COLUMN IF NOT EXISTS video_path_720 TEXT,
     ADD COLUMN IF NOT EXISTS video_path_480 TEXT,
     ADD COLUMN IF NOT EXISTS is_approved BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- ensure avatar column exists on users for legacy databases
+ALTER TABLE IF EXISTS users
+    ADD COLUMN IF NOT EXISTS avatar_path TEXT;
 
 CREATE TABLE IF NOT EXISTS comments (
     id SERIAL PRIMARY KEY,

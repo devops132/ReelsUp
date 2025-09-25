@@ -16,6 +16,7 @@ export default function NavBar({ darkMode, toggleTheme }) {
     const hash = md5(user.email.trim().toLowerCase()).toString();
     return `https://www.gravatar.com/avatar/${hash}?d=mp`;
   }, [user?.email]);
+  const avatarUrl = user?.avatar_url || gravatarUrl;
   useEffect(() => {
     const onClick = (e) => {
       if (!menuRef.current) return;
@@ -46,8 +47,8 @@ export default function NavBar({ darkMode, toggleTheme }) {
           {user.role === 'admin' && <Link to="/admin" data-tooltip="Админ" style={{ display:'inline-flex', alignItems:'center', gap:6 }}><IconShield /> <span className="label">Админ</span></Link>}
           <div style={{ position:'relative' }} ref={menuRef}>
             <button title={user.name || user.email} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 8px', borderRadius:9999 }} onClick={()=>setOpen(!open)}>
-              {gravatarUrl ? (
-                <img src={gravatarUrl} alt="avatar" onError={(e)=>{e.currentTarget.style.display='none'}} style={{ width:24, height:24, borderRadius:'50%' }} />
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="avatar" onError={(e)=>{e.currentTarget.style.display='none'}} style={{ width:24, height:24, borderRadius:'50%' }} />
               ) : null}
               <IconDots />
             </button>

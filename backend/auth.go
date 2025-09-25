@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -146,7 +147,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	req.Email = strings.TrimSpace(req.Email)
 	var id int
 	var hash, name, role string
-	err := db.QueryRow("SELECT id, password_hash, name, role FROM users WHERE LOWER(email)=LOWER($1)", strings.ToLower(req.Email)).Scan(&id, &hash, &name, &role)
+	var avatarPath sql.NullString
+	err := db.QueryRow("SELECT id, password_hash, name, role, avatar_path FROM users WHERE LOWER(email)=LOWER($1)", strings.ToLower(req.Email)).Scan(&id, &hash, &name, &role, &avatarPath)
 	if err != nil || !CheckPassword(hash, req.Password) {
 		http.Error(w, "Неверный email или пароль", http.StatusUnauthorized)
 		return
@@ -164,8 +166,9 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	avatarURL := buildAvatarURL(id, avatarPath)
 	json.NewEncoder(w).Encode(map[string]any{
 		"token": tokenStr,
-		"user":  map[string]any{"id": id, "email": strings.ToLower(req.Email), "name": name, "role": role},
+		"user":  map[string]any{"id": id, "email": strings.ToLower(req.Email), "name": name, "role": role, "avatar_url": avatarURL},
 	})
 }

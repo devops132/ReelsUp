@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { apiDelete, apiGet, apiPost, apiPut } from '../api';
+import { apiDelete, apiGet, apiPost, apiPut, apiUpload } from '../api';
 import VideoCard from '../components/VideoCard';
 
 const initialFormState = {
@@ -42,7 +42,7 @@ function toInputDateTime(value) {
 }
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const nav = useNavigate();
   const [videos, setVideos] = useState([]);
   const [streams, setStreams] = useState([]);
@@ -191,12 +191,62 @@ export default function Profile() {
 
   const statusLabel = { live: 'В эфире', scheduled: 'Запланирована', ended: 'Завершена' };
 
+  const avatarUrl = useMemo(() => user?.avatar_url || '', [user]);
+
+  const handleUploadAvatar = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      await apiUpload('/api/user/avatar', fd);
+      await refreshProfile();
+    } catch {}
+  };
+
+  const presets = useMemo(() => {
+    const items = [];
+    for (let i = 1; i <= 20; i++) {
+      const n = String(i).padStart(2, '0');
+      items.push(`/avatars/animal${n}.svg`);
+    }
+    return items;
+  }, []);
+
+  const setPreset = async (path) => {
+    try {
+      await apiPost('/api/user/avatar/preset', { path });
+      await refreshProfile();
+    } catch {}
+  };
+
   return (
     <div style={{ maxWidth: 960, margin: '20px auto', padding: '0 16px' }}>
       <h2>Мой профиль</h2>
       <p><strong>Email:</strong> {user.email}</p>
       <p><strong>Имя:</strong> {user.name || '-'}</p>
       <p><strong>Тип аккаунта:</strong> {user.role === 'business' ? 'Бизнес-пользователь' : (user.role === 'admin' ? 'Администратор' : 'Пользователь')}</p>
+
+      <section className="profile-section">
+        <h3>Аватар</h3>
+        <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+          <div style={{ width:80, height:80, borderRadius:'50%', overflow:'hidden', background:'#eee', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            {avatarUrl ? <img src={avatarUrl} alt="avatar" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <span style={{ color:'#888' }}>Нет</span>}
+          </div>
+          <label className="ghost-button" style={{ cursor:'pointer' }}>
+            Загрузить фото
+            <input type="file" accept="image/*" onChange={handleUploadAvatar} style={{ display:'none' }} />
+          </label>
+        </div>
+        <h4 style={{ marginTop:16 }}>Или выбрать из пресетов</h4>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(56px,1fr))', gap:8 }}>
+          {presets.map(src => (
+            <button key={src} title="Выбрать аватар" onClick={() => setPreset(src)} style={{ padding:0, border:'1px solid var(--border-color)', borderRadius:8, overflow:'hidden', background:'#fff' }}>
+              <img src={src} alt="preset" style={{ width:'100%', height:56, objectFit:'cover' }} />
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="profile-section">
         <h3>Мои прямые эфиры</h3>
