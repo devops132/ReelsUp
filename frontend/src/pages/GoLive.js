@@ -50,14 +50,24 @@ export default function GoLive() {
 
       // 4) Send WHIP request
       // Default WHIP endpoint is proxied by Nginx at /whip/{streamPath}
-      const whipUrl = `/whip/${encodeURIComponent(streamPath)}`;
-      const resp = await fetch(whipUrl, {
+      const whipUrlA = `/whip/${encodeURIComponent(streamPath)}`;
+      let resp = await fetch(whipUrlA, {
         method: 'POST',
         headers: { 'Content-Type': 'application/sdp', 'Accept': 'application/sdp' },
         body: offer.sdp
       });
       if (!resp.ok) {
-        throw new Error(`WHIP error: ${resp.status}`);
+        // Fallback: some deployments expect ?path=
+        const whipUrlB = `/whip?path=${encodeURIComponent(streamPath)}`;
+        resp = await fetch(whipUrlB, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/sdp', 'Accept': 'application/sdp' },
+          body: offer.sdp
+        });
+        if (!resp.ok) {
+          const txt = await resp.text().catch(()=>'');
+          throw new Error(`WHIP error: ${resp.status}${txt ? ' - ' + txt : ''}`);
+        }
       }
       const answerSdp = await resp.text();
       await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
