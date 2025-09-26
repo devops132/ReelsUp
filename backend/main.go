@@ -216,6 +216,8 @@ func main() {
 	authR.Use(JWTAuthMiddleware)
 	// Current user profile and avatar management
 	authR.HandleFunc("/user/me", GetCurrentUserHandler).Methods("GET")
+	authR.HandleFunc("/user/profile", UpdateProfileHandler).Methods("PUT")
+	authR.HandleFunc("/user/password", UpdatePasswordHandler).Methods("PUT")
 	authR.HandleFunc("/user/avatar", UploadAvatarHandler).Methods("POST")
 	authR.HandleFunc("/user/avatar/preset", SetPresetAvatarHandler).Methods("POST")
 	authR.HandleFunc("/videos", UploadVideoHandler).Methods("POST")

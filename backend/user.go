@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/mail"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -129,6 +130,110 @@ func SetPresetAvatarHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{"avatar_url": path})
+}
+
+// UpdateProfileHandler updates current user's name and/or email.
+// Body: { name?: string, email?: string, password_confirm: string }
+func UpdateProfileHandler(w http.ResponseWriter, r *http.Request) {
+	uid, ok := r.Context().Value(ctxKeyUserID).(int)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var req struct {
+		Name            *string `json:"name"`
+		Email           *string `json:"email"`
+		PasswordConfirm string  `json:"password_confirm"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Некорректный запрос", http.StatusBadRequest)
+		return
+	}
+	// Fetch current password hash and email
+	var curHash, curEmail, curName string
+	if err := db.QueryRow("SELECT password_hash, email, COALESCE(name,'') FROM users WHERE id=$1", uid).Scan(&curHash, &curEmail, &curName); err != nil {
+		http.Error(w, "Пользователь не найден", http.StatusNotFound)
+		return
+	}
+	// Confirm with current password
+	if strings.TrimSpace(req.PasswordConfirm) == "" || !CheckPassword(curHash, req.PasswordConfirm) {
+		http.Error(w, "Неверный текущий пароль", http.StatusUnauthorized)
+		return
+	}
+	// Prepare updates
+	newName := curName
+	newEmail := curEmail
+	if req.Name != nil {
+		newName = strings.TrimSpace(*req.Name)
+	}
+	if req.Email != nil {
+		email := strings.ToLower(strings.TrimSpace(*req.Email))
+		if email == "" {
+			http.Error(w, "Email не может быть пустым", http.StatusBadRequest)
+			return
+		}
+		if _, err := mail.ParseAddress(email); err != nil {
+			http.Error(w, "Некорректный email", http.StatusBadRequest)
+			return
+		}
+		newEmail = email
+	}
+	// Apply update
+	if _, err := db.Exec("UPDATE users SET name=$1, email=$2 WHERE id=$3", newName, newEmail, uid); err != nil {
+		http.Error(w, "Ошибка БД", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "email": newEmail, "name": newName})
+}
+
+// UpdatePasswordHandler changes the current user's password.
+// Body: { current_password: string, new_password: string }
+func UpdatePasswordHandler(w http.ResponseWriter, r *http.Request) {
+	uid, ok := r.Context().Value(ctxKeyUserID).(int)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var req struct {
+		Current string `json:"current_password"`
+		New     string `json:"new_password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Некорректный запрос", http.StatusBadRequest)
+		return
+	}
+	req.Current = strings.TrimSpace(req.Current)
+	req.New = strings.TrimSpace(req.New)
+	if req.Current == "" || req.New == "" {
+		http.Error(w, "Укажите текущий и новый пароль", http.StatusBadRequest)
+		return
+	}
+	// Load current hash
+	var curHash string
+	if err := db.QueryRow("SELECT password_hash FROM users WHERE id=$1", uid).Scan(&curHash); err != nil {
+		http.Error(w, "Пользователь не найден", http.StatusNotFound)
+		return
+	}
+	if !CheckPassword(curHash, req.Current) {
+		http.Error(w, "Неверный текущий пароль", http.StatusUnauthorized)
+		return
+	}
+	if len(req.New) < 8 {
+		http.Error(w, "Пароль должен быть не менее 8 символов", http.StatusBadRequest)
+		return
+	}
+	hash, err := HashPassword(req.New)
+	if err != nil {
+		http.Error(w, "Ошибка сервера", http.StatusInternalServerError)
+		return
+	}
+	if _, err := db.Exec("UPDATE users SET password_hash=$1 WHERE id=$2", hash, uid); err != nil {
+		http.Error(w, "Ошибка БД", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{"ok": true})
 }
 
 // UserAvatarContentHandler serves avatar content for a user when stored in MinIO (non-public path).

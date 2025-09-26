@@ -193,6 +193,20 @@ export default function Profile() {
 
   const avatarUrl = useMemo(() => user?.avatar_url || '', [user]);
 
+  // Modern settings panels state
+  const [profileMsg, setProfileMsg] = useState('');
+  const [profileErr, setProfileErr] = useState('');
+  const [pwdMsg, setPwdMsg] = useState('');
+  const [pwdErr, setPwdErr] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [pwdSaving, setPwdSaving] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', password_confirm: '' });
+  const [pwdForm, setPwdForm] = useState({ current_password: '', new_password: '', new_password2: '' });
+
+  useEffect(() => {
+    setProfileForm({ name: user?.name || '', email: user?.email || '', password_confirm: '' });
+  }, [user]);
+
   const handleUploadAvatar = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -223,9 +237,76 @@ export default function Profile() {
   return (
     <div style={{ maxWidth: 960, margin: '20px auto', padding: '0 16px' }}>
       <h2>Мой профиль</h2>
-      <p><strong>Email:</strong> {user.email}</p>
-      <p><strong>Имя:</strong> {user.name || '-'}</p>
-      <p><strong>Тип аккаунта:</strong> {user.role === 'business' ? 'Бизнес-пользователь' : (user.role === 'admin' ? 'Администратор' : 'Пользователь')}</p>
+      <section className="profile-section" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+        <div className="live-form">
+          <h3 style={{ marginTop:0 }}>Настройки аккаунта</h3>
+          <p className="text-muted">Обновите имя и email. Для сохранения требуется текущий пароль.</p>
+          {profileErr && <p className="live-error">{profileErr}</p>}
+          {profileMsg && <p className="live-success">{profileMsg}</p>}
+          <label>
+            Имя
+            <input value={profileForm.name} onChange={e=>setProfileForm(f=>({...f, name:e.target.value}))} placeholder="Ваше имя" />
+          </label>
+          <label>
+            Email
+            <input type="email" value={profileForm.email} onChange={e=>setProfileForm(f=>({...f, email:e.target.value}))} placeholder="you@example.com" />
+          </label>
+          <label>
+            Текущий пароль
+            <input type="password" value={profileForm.password_confirm} onChange={e=>setProfileForm(f=>({...f, password_confirm:e.target.value}))} placeholder="для подтверждения изменений" />
+          </label>
+          <div className="form-actions">
+            <button className="primary" disabled={profileSaving} onClick={async()=>{
+              setProfileErr(''); setProfileMsg(''); setProfileSaving(true);
+              try {
+                await apiPut('/api/user/profile', profileForm);
+                setProfileMsg('Профиль обновлен.');
+                await refreshProfile();
+                setProfileForm(f=>({...f, password_confirm:''}));
+              } catch (e) {
+                setProfileErr('Не удалось сохранить профиль');
+              } finally { setProfileSaving(false); }
+            }}>
+              {profileSaving ? 'Сохраняем…' : 'Сохранить изменения'}
+            </button>
+          </div>
+        </div>
+        <div className="live-form">
+          <h3 style={{ marginTop:0 }}>Смена пароля</h3>
+          <p className="text-muted">Минимум 8 символов. После смены войдите заново на других устройствах.</p>
+          {pwdErr && <p className="live-error">{pwdErr}</p>}
+          {pwdMsg && <p className="live-success">{pwdMsg}</p>}
+          <label>
+            Текущий пароль
+            <input type="password" value={pwdForm.current_password} onChange={e=>setPwdForm(f=>({...f, current_password:e.target.value}))} />
+          </label>
+          <label>
+            Новый пароль
+            <input type="password" value={pwdForm.new_password} onChange={e=>setPwdForm(f=>({...f, new_password:e.target.value}))} />
+          </label>
+          <label>
+            Повторите новый пароль
+            <input type="password" value={pwdForm.new_password2} onChange={e=>setPwdForm(f=>({...f, new_password2:e.target.value}))} />
+          </label>
+          <div className="form-actions">
+            <button className="primary" disabled={pwdSaving} onClick={async()=>{
+              setPwdErr(''); setPwdMsg('');
+              if (!pwdForm.new_password || pwdForm.new_password.length < 8) { setPwdErr('Пароль должен быть не менее 8 символов'); return; }
+              if (pwdForm.new_password !== pwdForm.new_password2) { setPwdErr('Пароли не совпадают'); return; }
+              setPwdSaving(true);
+              try {
+                await apiPut('/api/user/password', { current_password: pwdForm.current_password, new_password: pwdForm.new_password });
+                setPwdMsg('Пароль обновлен.');
+                setPwdForm({ current_password:'', new_password:'', new_password2:'' });
+              } catch (e) {
+                setPwdErr('Не удалось сменить пароль');
+              } finally { setPwdSaving(false); }
+            }}>
+              {pwdSaving ? 'Сохраняем…' : 'Обновить пароль'}
+            </button>
+          </div>
+        </div>
+      </section>
 
       <section className="profile-section">
         <h3>Аватар</h3>
