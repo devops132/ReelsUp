@@ -1,9 +1,12 @@
-# Minimal MediaMTX config enabling WebRTC (WHIP/WHEP) and HLS
+# MediaMTX config: WebRTC (WHIP/WHEP) and HLS with verbose logs
 
 hls: yes
 
+logLevel: debug
+
 webrtc: yes
 webrtcAddress: :8889
+webrtcAllowOrigin: '*'
 
 # Allow publishing to any path name via WHIP
 paths:
