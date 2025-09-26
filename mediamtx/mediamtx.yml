@@ -1,0 +1,13 @@
+# Minimal MediaMTX config enabling WebRTC (WHIP/WHEP) and HLS
+
+hls: yes
+
+webrtc: yes
+webrtcAddress: :8889
+
+# Allow publishing to any path name via WHIP
+paths:
+  all:
+    source: publisher
+
+
