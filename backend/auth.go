@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -94,6 +95,21 @@ func AdminOnlyMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// clientIP extracts best-effort client IP for logging purposes.
+func clientIP(r *http.Request) string {
+	if xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); xff != "" {
+		// may contain multiple, take the first
+		if idx := strings.IndexByte(xff, ','); idx != -1 {
+			return strings.TrimSpace(xff[:idx])
+		}
+		return xff
+	}
+	if xr := strings.TrimSpace(r.Header.Get("X-Real-IP")); xr != "" {
+		return xr
+	}
+	return r.RemoteAddr
+}
+
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Email    string `json:"email"`
@@ -141,6 +157,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("auth.login: bad json: ip=%s ua=%q err=%v", clientIP(r), r.UserAgent(), err)
 		http.Error(w, "Некорректные данные", http.StatusBadRequest)
 		return
 	}
@@ -149,7 +166,18 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var hash, name, role string
 	var avatarPath sql.NullString
 	err := db.QueryRow("SELECT id, password_hash, name, role, avatar_path FROM users WHERE LOWER(email)=LOWER($1)", strings.ToLower(req.Email)).Scan(&id, &hash, &name, &role, &avatarPath)
-	if err != nil || !CheckPassword(hash, req.Password) {
+	if err == sql.ErrNoRows {
+		log.Printf("auth.login: user not found: email=%s ip=%s ua=%q", strings.ToLower(req.Email), clientIP(r), r.UserAgent())
+		http.Error(w, "Неверный email или пароль", http.StatusUnauthorized)
+		return
+	}
+	if err != nil {
+		log.Printf("auth.login: db error: email=%s ip=%s ua=%q err=%v", strings.ToLower(req.Email), clientIP(r), r.UserAgent(), err)
+		http.Error(w, "Неверный email или пароль", http.StatusUnauthorized)
+		return
+	}
+	if !CheckPassword(hash, req.Password) {
+		log.Printf("auth.login: wrong password: email=%s ip=%s ua=%q", strings.ToLower(req.Email), clientIP(r), r.UserAgent())
 		http.Error(w, "Неверный email или пароль", http.StatusUnauthorized)
 		return
 	}
@@ -162,6 +190,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenStr, err := token.SignedString(jwtSecret)
 	if err != nil {
+		log.Printf("auth.login: token sign error: email=%s ip=%s ua=%q err=%v", strings.ToLower(req.Email), clientIP(r), r.UserAgent(), err)
 		http.Error(w, "Ошибка генерации токена", http.StatusInternalServerError)
 		return
 	}
