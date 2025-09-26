@@ -53,7 +53,7 @@ export default function GoLive() {
       const whipUrl = `/whip/${encodeURIComponent(streamPath)}`;
       const resp = await fetch(whipUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/sdp' },
+        headers: { 'Content-Type': 'application/sdp', 'Accept': 'application/sdp' },
         body: offer.sdp
       });
       if (!resp.ok) {
