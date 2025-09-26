@@ -11,6 +11,8 @@ import Profile from './pages/Profile';
 import VideoPage from './pages/VideoPage';
 import AdminPanel from './pages/AdminPanel';
 import VideoUploadForm from './components/VideoUploadForm';
+import GoLive from './pages/GoLive';
+import LiveWatch from './pages/LiveWatch';
 
 export default function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -27,6 +29,8 @@ export default function App() {
             <Route path="/upload" element={<VideoUploadForm />} />
             <Route path="/video/:id" element={<VideoPage />} />
             <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/live" element={<LiveWatch />} />
+            <Route path="/go-live" element={<GoLive />} />
           </Routes>
           <Footer />
         </div>

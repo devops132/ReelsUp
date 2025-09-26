@@ -43,6 +43,8 @@ export default function NavBar({ darkMode, toggleTheme }) {
         </button>
         {user ? (<>
           <Link to="/upload" data-tooltip="Загрузить" style={{ display:'inline-flex', alignItems:'center', gap:6 }}><IconUpload /> <span className="label">Загрузить</span></Link>
+          <Link to="/go-live" style={{ display:'inline-flex', alignItems:'center', gap:6 }}>📡 <span className="label">В эфир</span></Link>
+          <Link to="/live" style={{ display:'inline-flex', alignItems:'center', gap:6 }}>▶️ <span className="label">Эфиры</span></Link>
           <Link to="/profile" data-tooltip="Профиль" style={{ display:'inline-flex', alignItems:'center', gap:6 }}><IconUser /> <span className="label">Профиль</span></Link>
           {user.role === 'admin' && <Link to="/admin" data-tooltip="Админ" style={{ display:'inline-flex', alignItems:'center', gap:6 }}><IconShield /> <span className="label">Админ</span></Link>}
           <div style={{ position:'relative' }} ref={menuRef}>
