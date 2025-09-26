@@ -5,8 +5,6 @@ hls: yes
 logLevel: debug
 
 webrtc: yes
-whip: yes
-whep: yes
 webrtcAddress: :8889
 webrtcAllowOrigin: '*'
 webrtcICEServers2:
