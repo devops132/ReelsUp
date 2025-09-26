@@ -63,7 +63,7 @@ export default function GoLive() {
       await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
 
       // 5) Create backend live stream record if not exists
-      const streamUrl = `${window.location.origin}/live/${encodeURIComponent(streamPath)}/index.m3u8`;
+      const streamUrl = `${window.location.origin}/hls/${encodeURIComponent(streamPath)}/index.m3u8`;
       const payload = { title, description, stream_url: streamUrl, status: 'live' };
       const created = await apiPost('/api/livestreams', payload);
       setCreatedStream(created);
