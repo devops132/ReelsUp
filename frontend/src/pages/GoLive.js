@@ -49,25 +49,26 @@ export default function GoLive() {
       await pc.setLocalDescription(offer);
 
       // 4) Send WHIP request
-      // Default WHIP endpoint is proxied by Nginx at /whip/{streamPath}
-      const whipUrlA = `/whip/${encodeURIComponent(streamPath)}`;
-      let resp = await fetch(whipUrlA, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/sdp', 'Accept': 'application/sdp' },
-        body: offer.sdp
-      });
-      if (!resp.ok) {
-        // Fallback: some deployments expect ?path=
-        const whipUrlB = `/whip?path=${encodeURIComponent(streamPath)}`;
-        resp = await fetch(whipUrlB, {
+      // Try multiple endpoint formats supported by MediaMTX
+      const candidateUrls = [
+        `/${encodeURIComponent(streamPath)}/whip`,
+        `/whip/${encodeURIComponent(streamPath)}`,
+        `/whip?path=${encodeURIComponent(streamPath)}`
+      ];
+      let resp = null;
+      let lastErr = '';
+      for (const url of candidateUrls) {
+        const r = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/sdp', 'Accept': 'application/sdp' },
           body: offer.sdp
         });
-        if (!resp.ok) {
-          const txt = await resp.text().catch(()=>'');
-          throw new Error(`WHIP error: ${resp.status}${txt ? ' - ' + txt : ''}`);
-        }
+        if (r.ok) { resp = r; break; }
+        const txt = await r.text().catch(()=>' ');
+        lastErr = `${r.status}${txt ? ' - ' + txt : ''}`;
+      }
+      if (!resp) {
+        throw new Error(`WHIP error: ${lastErr || 'unknown'}`);
       }
       const answerSdp = await resp.text();
       await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
