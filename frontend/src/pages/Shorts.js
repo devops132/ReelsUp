@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { apiGet } from '../api';
 import LeftSidebar from '../components/LeftSidebar';
+import ShortsViewer from '../components/ShortsViewer';
 
 export default function Shorts() {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [openViewer, setOpenViewer] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   useEffect(() => {
     setLoading(true);
@@ -12,6 +15,13 @@ export default function Shorts() {
       .then(data => { setVideos(data); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  const openAt = (idx) => { setViewerIndex(idx); setOpenViewer(true); };
+  const closeViewer = () => setOpenViewer(false);
+
+  if (openViewer) {
+    return <ShortsViewer videos={videos} startIndex={viewerIndex} onExit={closeViewer} />;
+  }
 
   return (
     <div className="page-with-sidebar">
@@ -29,8 +39,8 @@ export default function Shorts() {
                   </div>
                 </div>
               ))
-            : videos.map(v => (
-                <a key={v.id} href={`/video/${v.id}`} className="shorts-card">
+            : videos.map((v, idx) => (
+                <button key={v.id} className="shorts-card" onClick={() => openAt(idx)}>
                   <div className="thumb-vertical">
                     {v.thumbnail_url ? (
                       <img src={v.thumbnail_url} alt={v.title} />
@@ -42,7 +52,7 @@ export default function Shorts() {
                     <h3 title={v.title}>{v.title}</h3>
                     <small>{v.author_name || 'Автор'}</small>
                   </div>
-                </a>
+                </button>
               ))}
         </div>
       </div>

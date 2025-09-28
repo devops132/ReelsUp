@@ -13,7 +13,9 @@ export default function VideoJSPlayer({
   overlayDurationMs = 1200,
   resumeTime = 0,
   onTimeUpdate,
-  onFullscreenChange
+  onFullscreenChange,
+  onEnded,
+  initialScaleMode
 }) {
   const videoRef = useRef(null);
   const playerRef = useRef(null);
@@ -29,7 +31,7 @@ export default function VideoJSPlayer({
   });
   const [scaleMode, setScaleMode] = useState(() => {
     if (typeof window === 'undefined') return 'contain';
-    return window.localStorage.getItem(rememberScaleValueKey) || 'contain';
+    return window.localStorage.getItem(rememberScaleValueKey) || initialScaleMode || 'contain';
   });
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -38,6 +40,7 @@ export default function VideoJSPlayer({
   const resumeAppliedRef = useRef(null);
   const timeUpdateHandlerRef = useRef(null);
   const fullscreenHandlerRef = useRef(null);
+  const endedHandlerRef = useRef(null);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -72,6 +75,12 @@ export default function VideoJSPlayer({
     };
     fullscreenHandlerRef.current = onFullscreen;
     playerRef.current.on('fullscreenchange', onFullscreen);
+
+    if (onEnded) {
+      const onEndedCb = () => { try { onEnded(); } catch (e) {} };
+      endedHandlerRef.current = onEndedCb;
+      playerRef.current.on('ended', onEndedCb);
+    }
 
     // simple quality dropdown inserted into the control bar
     const controlBar = playerRef.current.getChild('controlBar');
@@ -136,6 +145,10 @@ export default function VideoJSPlayer({
           playerRef.current.off('fullscreenchange', fullscreenHandlerRef.current);
           fullscreenHandlerRef.current = null;
         }
+        if (endedHandlerRef.current) {
+          playerRef.current.off('ended', endedHandlerRef.current);
+          endedHandlerRef.current = null;
+        }
       }
       if (playerRef.current) {
         playerRef.current.dispose();
@@ -143,7 +156,7 @@ export default function VideoJSPlayer({
       }
       if (statusTimeoutRef.current) { clearTimeout(statusTimeoutRef.current); statusTimeoutRef.current = null; }
     };
-    }, [video.id, onTimeUpdate, onFullscreenChange]);
+    }, [video.id, onTimeUpdate, onFullscreenChange, onEnded]);
 
   useEffect(() => {
     const updateMobileState = () => {

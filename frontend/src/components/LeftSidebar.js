@@ -15,8 +15,8 @@ export default function LeftSidebar() {
         <Link to="/shorts" className={"left-nav-item" + (isActive('/shorts') ? ' active' : '')}>
           <IconPhonePlay /> <span>Шортсы</span>
         </Link>
-        <Link to="/go-live" className={"left-nav-item" + (isActive('/go-live') ? ' active' : '')}>
-          <IconCameraTripod /> <span>Трансляция</span>
+        <Link to="/live" className={"left-nav-item" + (isActive('/live') ? ' active' : '')}>
+          <IconCameraTripod /> <span>Трансляции</span>
         </Link>
       </nav>
     </aside>
