@@ -60,7 +60,7 @@ a:hover { text-decoration: underline; filter: brightness(1.1); }
 }
 
 /* Layout with left sidebar */
-.page-with-sidebar { display: grid; grid-template-columns: 220px 1fr; gap: 0; max-width: 1440px; margin: 0 auto; }
+.page-with-sidebar { display: grid; grid-template-columns: 110px 1fr; gap: 0; max-width: 1440px; margin: 0 auto; }
 .page-with-sidebar .page-content { min-height: calc(100vh - 64px); }
 .left-sidebar { position: sticky; top: 64px; align-self: start; height: calc(100vh - 64px); border-right: 1px solid var(--border-color); background: var(--surface-1); }
 .left-nav { display: flex; flex-direction: column; padding: 12px; gap: 6px; }
