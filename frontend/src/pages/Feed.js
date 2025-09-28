@@ -5,6 +5,7 @@ import { apiGet } from '../api';
 import VideoCard from '../components/VideoCard';
 import VideoSkeleton from '../components/VideoSkeleton';
 import LiveStreamsBlock from '../components/LiveStreamsBlock';
+import LeftSidebar from '../components/LeftSidebar';
 
 export default function Feed() {
   const location = useLocation();
@@ -111,9 +112,11 @@ export default function Feed() {
   };
 
   return (
-    <div>
-      <h1 className="section-header">Лента ReelsUp</h1>
-      <LiveStreamsBlock />
+    <div className="page-with-sidebar">
+      <LeftSidebar />
+      <div className="page-content">
+        <h1 className="section-header">Лента ReelsUp</h1>
+        <LiveStreamsBlock />
       <form onSubmit={search} className="feed-controls">
         <input placeholder="Поиск..." value={q} onChange={e=>setQ(e.target.value)} />
         <select value={category} onChange={e=>{ const val = e.target.value; setCategory(val); if (val) addFilterCat(val); }}>
@@ -147,10 +150,11 @@ export default function Feed() {
           </div>
         </div>
       ) : null}
-      <div className="feed">
-        {loading
-          ? Array.from({ length: 6 }).map((_, i) => <VideoSkeleton key={i} />)
-          : videos.map(v => <VideoCard key={v.id} video={v} />)}
+        <div className="feed">
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => <VideoSkeleton key={i} />)
+            : videos.map(v => <VideoCard key={v.id} video={v} />)}
+        </div>
       </div>
     </div>
   );

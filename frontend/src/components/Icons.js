@@ -80,3 +80,25 @@ export const IconShield = ({ size=18, color='currentColor' }) => (
 );
 
 
+export const IconHome = ({ size=18, color='currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.5Z" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+export const IconPhonePlay = ({ size=18, color='currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="6" y="2" width="12" height="20" rx="2.5" stroke={color} strokeWidth="1.8"/>
+    <path d="M11 9v6l5-3-5-3Z" fill={color}/>
+  </svg>
+);
+
+export const IconCameraTripod = ({ size=18, color='currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="4" y="5" width="12" height="8" rx="2" stroke={color} strokeWidth="1.8"/>
+    <path d="M16 7l4-2v8l-4-2V7Z" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M10 13v4" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+    <path d="M10 17l-4 5" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+    <path d="M10 17l4 5" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+  </svg>
+);

@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { apiDelete, apiGet, apiPost, apiPut, apiUpload } from '../api';
 import VideoCard from '../components/VideoCard';
+import VideoUploadForm from '../components/VideoUploadForm';
 
 const initialFormState = {
   title: '',
@@ -429,6 +430,10 @@ export default function Profile() {
         </div>
       </section>
 
+      <section className="profile-section">
+        <h3>Загрузка видео</h3>
+        <VideoUploadForm />
+      </section>
       <h3>Мои видео</h3>
       <div className="feed">
         {videos.map(v => <VideoCard key={v.id} video={v} />)}

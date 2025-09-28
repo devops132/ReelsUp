@@ -58,6 +58,21 @@ a:hover { text-decoration: underline; filter: brightness(1.1); }
   font-size: 2rem;
   font-weight: 700;
 }
+
+/* Layout with left sidebar */
+.page-with-sidebar { display: grid; grid-template-columns: 220px 1fr; gap: 0; max-width: 1440px; margin: 0 auto; }
+.page-with-sidebar .page-content { min-height: calc(100vh - 64px); }
+.left-sidebar { position: sticky; top: 64px; align-self: start; height: calc(100vh - 64px); border-right: 1px solid var(--border-color); background: var(--surface-1); }
+.left-nav { display: flex; flex-direction: column; padding: 12px; gap: 6px; }
+.left-nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; color: var(--text-color); }
+.left-nav-item:hover { background: var(--surface-2); text-decoration: none; }
+.left-nav-item.active { background: #243142; }
+.left-nav-item svg { width: 20px; height: 20px; }
+@media (max-width: 900px) {
+  .page-with-sidebar { grid-template-columns: 1fr; }
+  .left-sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border-color); }
+  .left-nav { flex-direction: row; overflow-x: auto; }
+}
 .feed {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -66,6 +81,14 @@ a:hover { text-decoration: underline; filter: brightness(1.1); }
   max-width: 1320px;
   margin: 0 auto;
 }
+
+/* Shorts page */
+.shorts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; padding: 16px; max-width: 1320px; margin: 0 auto; }
+.shorts-card { border: 1px solid var(--border-color); border-radius: 12px; background: var(--card-bg); overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.35); display: block; text-decoration: none; color: var(--text-color); }
+.thumb-vertical { width: 100%; aspect-ratio: 9 / 16; background: #000; overflow: hidden; }
+.thumb-vertical img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shorts-content { padding: 10px 12px; }
+.shorts-content h3 { margin: 4px 0 6px; font-size: 1rem; }
 
 .live-block {
   max-width: 1320px;

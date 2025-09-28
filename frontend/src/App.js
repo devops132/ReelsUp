@@ -10,7 +10,7 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import VideoPage from './pages/VideoPage';
 import AdminPanel from './pages/AdminPanel';
-import VideoUploadForm from './components/VideoUploadForm';
+import Shorts from './pages/Shorts';
 import GoLive from './pages/GoLive';
 import LiveWatch from './pages/LiveWatch';
 
@@ -26,7 +26,7 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/upload" element={<VideoUploadForm />} />
+            <Route path="/shorts" element={<Shorts />} />
             <Route path="/video/:id" element={<VideoPage />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/live" element={<LiveWatch />} />
