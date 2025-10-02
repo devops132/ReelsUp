@@ -44,6 +44,7 @@ type Video struct {
 	AvgRating          float64   `json:"avg_rating"`
 	MyRating           int       `json:"my_rating"`
 	ViewsCount         int       `json:"views_count"`
+	IsReel             bool      `json:"is_reel"`
 }
 
 func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +64,8 @@ func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
                      v.is_approved,
                      (v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') AS has_720,
                      (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') AS has_480,
-                     v.views_count
+                     v.views_count,
+                     v.is_reel
               FROM videos v
               JOIN users u ON u.id = v.user_id
 	              LEFT JOIN categories c ON c.id = v.category_id
@@ -154,7 +156,7 @@ func ListVideosHandler(w http.ResponseWriter, r *http.Request) {
 		var v Video
 		var catID sql.NullInt32
 		if err := rows.Scan(&v.ID, &v.Title, &v.Description, &v.Tags, &v.ProductLinks, &v.Thumbnail, &v.VideoPath,
-			&v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.ParentCategoryName, &v.LikesCount, &v.DislikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480, &v.ViewsCount); err != nil {
+			&v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.ParentCategoryName, &v.LikesCount, &v.DislikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480, &v.ViewsCount, &v.IsReel); err != nil {
 			log.Printf("ListVideosHandler: scan error: %v, video ID: %v", err, v.ID)
 			http.Error(w, "Ошибка данных", http.StatusInternalServerError)
 			return
@@ -185,12 +187,13 @@ func GetVideoHandler(w http.ResponseWriter, r *http.Request) {
                 v.is_approved,
                 (v.video_path_720 IS NOT NULL AND v.video_path_720 <> '') AS has_720,
                 (v.video_path_480 IS NOT NULL AND v.video_path_480 <> '') AS has_480,
-                v.views_count
+                v.views_count,
+                v.is_reel
          FROM videos v
          JOIN users u ON u.id = v.user_id
          LEFT JOIN categories c ON c.id = v.category_id
          WHERE v.id = $1`, id).Scan(&v.ID, &v.Title, &v.Description, &v.Tags, &v.ProductLinks, &v.Thumbnail, &v.VideoPath,
-		&v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.LikesCount, &v.DislikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480, &v.ViewsCount)
+		&v.CreatedAt, &v.UserID, &v.UserName, &catID, &v.CategoryName, &v.LikesCount, &v.DislikesCount, &v.CommentsCount, &v.AvgRating, &v.IsApproved, &v.Has720, &v.Has480, &v.ViewsCount, &v.IsReel)
 	if err != nil {
 		log.Printf("GetVideoHandler: query error for id=%d: %v", id, err)
 		http.Error(w, "Видео не найдено", http.StatusNotFound)
@@ -415,6 +418,8 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	productLinks := r.FormValue("productLinks")
+	reelStr := strings.ToLower(strings.TrimSpace(r.FormValue("reel")))
+	isReel := reelStr == "1" || reelStr == "true" || reelStr == "on" || reelStr == "yes"
 	catStr := r.FormValue("category")
 	uid := r.Context().Value(ctxKeyUserID).(int)
 	role := r.Context().Value(ctxKeyUserRole).(string)
@@ -442,13 +447,13 @@ func UploadVideoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var videoID int
 	if catId != nil {
-		err = db.QueryRow(`INSERT INTO videos (user_id, category_id, title, description, tags, product_links, video_path, thumbnail_path, is_approved)
-                           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
-			uid, *catId, title, description, tags, productLinks, objectName, "", isApproved).Scan(&videoID)
+		err = db.QueryRow(`INSERT INTO videos (user_id, category_id, title, description, tags, product_links, video_path, thumbnail_path, is_reel, is_approved)
+                           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+			uid, *catId, title, description, tags, productLinks, objectName, "", isReel, isApproved).Scan(&videoID)
 	} else {
-		err = db.QueryRow(`INSERT INTO videos (user_id, title, description, tags, product_links, video_path, thumbnail_path, is_approved)
-                           VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
-			uid, title, description, tags, productLinks, objectName, "", isApproved).Scan(&videoID)
+		err = db.QueryRow(`INSERT INTO videos (user_id, title, description, tags, product_links, video_path, thumbnail_path, is_reel, is_approved)
+                           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+			uid, title, description, tags, productLinks, objectName, "", isReel, isApproved).Scan(&videoID)
 	}
 	if err != nil {
 		log.Printf("UploadVideoHandler: insert video meta error: %v", err)

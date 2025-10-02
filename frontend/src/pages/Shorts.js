@@ -12,7 +12,11 @@ export default function Shorts() {
   useEffect(() => {
     setLoading(true);
     apiGet('/api/videos')
-      .then(data => { setVideos(data); setLoading(false); })
+      .then(data => {
+        const onlyReels = (data || []).filter(v => (v.reel === 1 || v.reel === true || v.is_reel === 1 || v.is_reel === true));
+        setVideos(onlyReels);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 

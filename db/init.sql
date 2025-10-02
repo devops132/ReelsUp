@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS videos (
     -- paths for transcoded variants
     video_path_720 TEXT,
     video_path_480 TEXT,
+    is_reel BOOLEAN NOT NULL DEFAULT FALSE,
     is_approved BOOLEAN NOT NULL DEFAULT FALSE,
     views_count INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -63,6 +64,7 @@ CREATE INDEX IF NOT EXISTS idx_live_streams_scheduled_at ON live_streams(schedul
 ALTER TABLE IF EXISTS videos
     ADD COLUMN IF NOT EXISTS video_path_720 TEXT,
     ADD COLUMN IF NOT EXISTS video_path_480 TEXT,
+    ADD COLUMN IF NOT EXISTS is_reel BOOLEAN NOT NULL DEFAULT FALSE,
     ADD COLUMN IF NOT EXISTS is_approved BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- ensure avatar column exists on users for legacy databases

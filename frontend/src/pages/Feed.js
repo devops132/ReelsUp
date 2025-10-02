@@ -44,9 +44,14 @@ export default function Feed() {
     if (catsArr.length) params.push('categories='+catsArr.join(','));
     if (tagsArr.length) params.push('tags='+encodeURIComponent(tagsArr.join(',')));
     if (sortBy === 'likes') params.push('sort=likes');
+    // exclude reels from main feed (handled on client if backend doesn't support filtering)
     if (params.length) url += '?' + params.join('&');
     apiGet(url)
-      .then(data => { setVideos(data); setLoading(false); })
+      .then(data => {
+        const nonReels = (data || []).filter(v => !(v.reel === 1 || v.reel === true || v.is_reel === 1 || v.is_reel === true));
+        setVideos(nonReels);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   };
 

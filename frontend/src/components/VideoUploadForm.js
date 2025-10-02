@@ -16,6 +16,7 @@ export default function VideoUploadForm() {
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isReel, setIsReel] = useState(false);
 
   useEffect(() => {
     if (!user) { nav('/login'); return; }
@@ -33,6 +34,7 @@ export default function VideoUploadForm() {
     fd.append('tags', tags);
     fd.append('productLinks', productLinks);
     fd.append('category', category);
+    fd.append('reel', isReel ? '1' : '0');
     try {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/api/videos');
@@ -103,6 +105,10 @@ export default function VideoUploadForm() {
         <option value="">-- Не выбрана --</option>
         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
       </select></label>
+      <label className="checkbox-inline">
+        <input type="checkbox" checked={isReel} onChange={e=>setIsReel(e.target.checked)} disabled={uploading} />
+        Это рилс (вертикальное видео)
+      </label>
       {uploading && (
         <div style={{marginTop: 10}}>
           <div style={{height: 8, background: '#eee', borderRadius: 4, overflow: 'hidden'}}>
